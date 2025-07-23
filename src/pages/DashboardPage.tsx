@@ -1,0 +1,426 @@
+import React from 'react';
+import styled from 'styled-components';
+import { 
+  Home, 
+  Trello, 
+  Users, 
+  Star, 
+  Folder, 
+  Archive, 
+  Settings,
+  Plus,
+  Search,
+  Bell,
+  User
+} from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { Link } from 'react-router-dom';
+
+const DashboardContainer = styled.div`
+  min-height: 100vh;
+  background: #f8f9fa;
+`;
+
+const Header = styled.header`
+  background: white;
+  border-bottom: 1px solid #e1e8ed;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const HeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 24px;
+`;
+
+const Logo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  font-weight: bold;
+  color: #2c3e50;
+`;
+
+const SearchBar = styled.div`
+  position: relative;
+  
+  input {
+    padding: 8px 16px 8px 40px;
+    border: 1px solid #e1e8ed;
+    border-radius: 20px;
+    width: 300px;
+    font-size: 14px;
+    
+    &:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+  }
+  
+  svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #95a5a6;
+  }
+`;
+
+const HeaderRight = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+`;
+
+const IconButton = styled.button`
+  background: none;
+  border: none;
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #7f8c8d;
+  
+  &:hover {
+    background: #f1f3f5;
+    color: #2c3e50;
+  }
+`;
+
+const UserButton = styled(IconButton)`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 20px;
+  padding: 8px 12px;
+  
+  span {
+    font-size: 14px;
+    font-weight: 500;
+  }
+`;
+
+const MainContent = styled.div`
+  display: flex;
+  min-height: calc(100vh - 69px);
+`;
+
+const Sidebar = styled.aside`
+  background: white;
+  width: 240px;
+  border-right: 1px solid #e1e8ed;
+  padding: 24px 0;
+`;
+
+const SidebarItem = styled.div<{ active?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  cursor: pointer;
+  color: ${props => props.active ? '#667eea' : '#7f8c8d'};
+  background: ${props => props.active ? '#f8f9ff' : 'transparent'};
+  border-right: ${props => props.active ? '3px solid #667eea' : 'none'};
+  
+  &:hover {
+    background: #f8f9ff;
+    color: #667eea;
+  }
+  
+  span {
+    font-size: 14px;
+    font-weight: 500;
+  }
+`;
+
+const Content = styled.main`
+  flex: 1;
+  padding: 32px;
+`;
+
+const WelcomeSection = styled.div`
+  margin-bottom: 32px;
+  
+  h1 {
+    font-size: 32px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin: 0 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+`;
+
+const Section = styled.div`
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+`;
+
+const SectionTitle = styled.h2`
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 16px 0;
+`;
+
+const QuickActions = styled.div`
+  display: flex;
+  gap: 16px;
+`;
+
+const ActionButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.3s;
+  
+  &:hover {
+    opacity: 0.9;
+  }
+`;
+
+const SecondaryButton = styled(ActionButton)`
+  background: white;
+  color: #667eea;
+  border: 2px solid #667eea;
+  
+  &:hover {
+    background: #f8f9ff;
+  }
+`;
+
+const BoardGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+`;
+
+const BoardCard = styled(Link)`
+  display: block;
+  background: white;
+  border: 2px solid #e1e8ed;
+  border-radius: 8px;
+  padding: 20px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.3s;
+  
+  &:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+  }
+  
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  p {
+    color: #7f8c8d;
+    font-size: 14px;
+    margin: 0;
+  }
+`;
+
+const ActivityFeed = styled.div`
+  max-height: 300px;
+  overflow-y: auto;
+`;
+
+const ActivityItem = styled.div`
+  display: flex;
+  align-items: start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f3f5;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const ActivityContent = styled.div`
+  flex: 1;
+  
+  p {
+    margin: 0 0 4px 0;
+    font-size: 14px;
+    color: #2c3e50;
+  }
+  
+  span {
+    font-size: 12px;
+    color: #95a5a6;
+  }
+`;
+
+const ActivityIcon = styled.div`
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #667eea;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  flex-shrink: 0;
+`;
+
+export const DashboardPage: React.FC = () => {
+  const { user, logout } = useAuth();
+
+  const mockBoards = [
+    { id: '1', title: 'Marketing Campaign', icon: '📋', description: '5 cards • 3 members' },
+    { id: '2', title: 'Dev Tasks', icon: '💻', description: '12 cards • 4 members' },
+    { id: '3', title: 'Design System', icon: '🎨', description: '8 cards • 2 members' },
+    { id: '4', title: 'Personal Tasks', icon: '📝', description: '3 cards • 1 member' },
+  ];
+
+  const mockActivity = [
+    { id: '1', user: 'John', action: 'moved card "Login UI" to Done', time: '2 minutes ago' },
+    { id: '2', user: 'Sarah', action: 'added comment on "Design System"', time: '15 minutes ago' },
+    { id: '3', user: 'Mike', action: 'joined "Dev Tasks" board', time: '1 hour ago' },
+    { id: '4', user: 'Alex', action: 'created new card "API Integration"', time: '2 hours ago' },
+  ];
+
+  return (
+    <DashboardContainer>
+      <Header>
+        <HeaderLeft>
+          <Logo>
+            <Home size={24} />
+            Trellcord
+          </Logo>
+          <SearchBar>
+            <Search size={16} />
+            <input type="text" placeholder="Search boards, cards, members..." />
+          </SearchBar>
+        </HeaderLeft>
+        
+        <HeaderRight>
+          <IconButton>
+            <Bell size={20} />
+          </IconButton>
+          <UserButton onClick={logout}>
+            <User size={20} />
+            <span>{user?.name}</span>
+          </UserButton>
+          <IconButton>
+            <Settings size={20} />
+          </IconButton>
+        </HeaderRight>
+      </Header>
+
+      <MainContent>
+        <Sidebar>
+          <SidebarItem active>
+            <Home size={20} />
+            <span>Dashboard</span>
+          </SidebarItem>
+          <SidebarItem>
+            <Trello size={20} />
+            <span>My Boards</span>
+          </SidebarItem>
+          <SidebarItem>
+            <Users size={20} />
+            <span>Teams</span>
+          </SidebarItem>
+          <SidebarItem>
+            <Star size={20} />
+            <span>Starred</span>
+          </SidebarItem>
+          <SidebarItem>
+            <Folder size={20} />
+            <span>Templates</span>
+          </SidebarItem>
+          <SidebarItem>
+            <Archive size={20} />
+            <span>Archive</span>
+          </SidebarItem>
+          <SidebarItem>
+            <Settings size={20} />
+            <span>Settings</span>
+          </SidebarItem>
+        </Sidebar>
+
+        <Content>
+          <WelcomeSection>
+            <h1>
+              Welcome back, {user?.name}! 👋
+            </h1>
+          </WelcomeSection>
+
+          <Section>
+            <SectionTitle>Quick Actions</SectionTitle>
+            <QuickActions>
+              <ActionButton>
+                <Plus size={16} />
+                New Board
+              </ActionButton>
+              <SecondaryButton>
+                <Plus size={16} />
+                Join Board
+              </SecondaryButton>
+            </QuickActions>
+          </Section>
+
+          <Section>
+            <SectionTitle>Recent Boards</SectionTitle>
+            <BoardGrid>
+              {mockBoards.map((board) => (
+                <BoardCard key={board.id} to={`/board/${board.id}`}>
+                  <h3>
+                    <span>{board.icon}</span>
+                    {board.title}
+                  </h3>
+                  <p>{board.description}</p>
+                </BoardCard>
+              ))}
+            </BoardGrid>
+          </Section>
+
+          <Section>
+            <SectionTitle>Activity Feed</SectionTitle>
+            <ActivityFeed>
+              {mockActivity.map((activity) => (
+                <ActivityItem key={activity.id}>
+                  <ActivityIcon>
+                    {activity.user[0]}
+                  </ActivityIcon>
+                  <ActivityContent>
+                    <p>
+                      <strong>{activity.user}</strong> {activity.action}
+                    </p>
+                    <span>{activity.time}</span>
+                  </ActivityContent>
+                </ActivityItem>
+              ))}
+            </ActivityFeed>
+          </Section>
+        </Content>
+      </MainContent>
+    </DashboardContainer>
+  );
+};
