@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { 
   Home, 
@@ -11,10 +11,15 @@ import {
   Plus,
   Search,
   Bell,
-  User
+  User,
+  Trash2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useBoards } from '../context/BoardContext';
 import { Link } from 'react-router-dom';
+import { NewBoardModal } from '../components/NewBoardModal';
+import { JoinBoardModal } from '../components/JoinBoardModal';
+import { DeleteBoardModal } from '../components/DeleteBoardModal';
 
 const DashboardContainer = styled.div`
   min-height: 100vh;
@@ -290,13 +295,16 @@ const ActivityIcon = styled.div`
 
 export const DashboardPage: React.FC = () => {
   const { user, logout } = useAuth();
+  const { boards } = useBoards();
+  const [showNewBoardModal, setShowNewBoardModal] = useState(false);
+  const [showJoinBoardModal, setShowJoinBoardModal] = useState(false);
+  const [showDeleteBoardModal, setShowDeleteBoardModal] = useState(false);
+  const [selectedBoardForDelete, setSelectedBoardForDelete] = useState<{ id: string; title: string } | null>(null);
 
-  const mockBoards = [
-    { id: '1', title: 'Marketing Campaign', icon: '📋', description: '5 cards • 3 members' },
-    { id: '2', title: 'Dev Tasks', icon: '💻', description: '12 cards • 4 members' },
-    { id: '3', title: 'Design System', icon: '🎨', description: '8 cards • 2 members' },
-    { id: '4', title: 'Personal Tasks', icon: '📝', description: '3 cards • 1 member' },
-  ];
+  // Get recent boards (last 4 updated)
+  const recentBoards = [...boards]
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+    .slice(0, 4);
 
   const mockActivity = [
     { id: '1', user: 'John', action: 'moved card "Login UI" to Done', time: '2 minutes ago' },
@@ -304,6 +312,20 @@ export const DashboardPage: React.FC = () => {
     { id: '3', user: 'Mike', action: 'joined "Dev Tasks" board', time: '1 hour ago' },
     { id: '4', user: 'Alex', action: 'created new card "API Integration"', time: '2 hours ago' },
   ];
+
+  const handleDeleteBoardClick = () => {
+    if (boards.length > 0) {
+      // Selecciona el primer tablero disponible para eliminar
+      const firstBoard = boards[0];
+      setSelectedBoardForDelete({ id: firstBoard.id, title: firstBoard.title });
+      setShowDeleteBoardModal(true);
+    }
+  };
+
+  const handleCloseDeleteModal = () => {
+    setShowDeleteBoardModal(false);
+    setSelectedBoardForDelete(null);
+  };
 
   return (
     <DashboardContainer>
@@ -339,10 +361,12 @@ export const DashboardPage: React.FC = () => {
             <Home size={20} />
             <span>Dashboard</span>
           </SidebarItem>
-          <SidebarItem>
-            <Trello size={20} />
-            <span>My Boards</span>
-          </SidebarItem>
+          <Link to="/my-boards" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <SidebarItem>
+              <Trello size={20} />
+              <span>My Boards</span>
+            </SidebarItem>
+          </Link>
           <SidebarItem>
             <Users size={20} />
             <span>Teams</span>
@@ -375,11 +399,22 @@ export const DashboardPage: React.FC = () => {
           <Section>
             <SectionTitle>Quick Actions</SectionTitle>
             <QuickActions>
-              <ActionButton>
+              <ActionButton onClick={() => setShowNewBoardModal(true)}>
                 <Plus size={16} />
                 New Board
               </ActionButton>
-              <SecondaryButton>
+<ActionButton 
+                onClick={handleDeleteBoardClick}
+                disabled={boards.length === 0}
+                style={{ 
+                  opacity: boards.length === 0 ? 0.5 : 1,
+                  cursor: boards.length === 0 ? 'not-allowed' : 'pointer'
+                }}
+              >
+                <Trash2 size={16} />
+                Delete Board
+              </ActionButton>
+              <SecondaryButton onClick={() => setShowJoinBoardModal(true)}>
                 <Plus size={16} />
                 Join Board
               </SecondaryButton>
@@ -389,15 +424,24 @@ export const DashboardPage: React.FC = () => {
           <Section>
             <SectionTitle>Recent Boards</SectionTitle>
             <BoardGrid>
-              {mockBoards.map((board) => (
+              {recentBoards.length > 0 ? recentBoards.map((board) => (
                 <BoardCard key={board.id} to={`/board/${board.id}`}>
                   <h3>
-                    <span>{board.icon}</span>
+                    <span>📋</span>
                     {board.title}
                   </h3>
-                  <p>{board.description}</p>
+                  <p>{board.description || `${board.members.length} members`}</p>
                 </BoardCard>
-              ))}
+              )) : (
+                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '48px 24px', color: '#7f8c8d' }}>
+                  <h3 style={{ margin: '0 0 8px 0', color: '#2c3e50' }}>No boards yet</h3>
+                  <p style={{ margin: '0 0 24px 0' }}>Create your first board to get started!</p>
+                  <ActionButton onClick={() => setShowNewBoardModal(true)}>
+                    <Plus size={16} />
+                    Create Board
+                  </ActionButton>
+                </div>
+              )}
             </BoardGrid>
           </Section>
 
@@ -421,6 +465,25 @@ export const DashboardPage: React.FC = () => {
           </Section>
         </Content>
       </MainContent>
+      
+      <NewBoardModal 
+        isOpen={showNewBoardModal} 
+        onClose={() => setShowNewBoardModal(false)} 
+      />
+      
+      <JoinBoardModal 
+        isOpen={showJoinBoardModal} 
+        onClose={() => setShowJoinBoardModal(false)} 
+      />
+      
+      {selectedBoardForDelete && (
+        <DeleteBoardModal 
+          isOpen={showDeleteBoardModal} 
+          onClose={handleCloseDeleteModal}
+          boardId={selectedBoardForDelete.id}
+          boardTitle={selectedBoardForDelete.title}
+        />
+      )}
     </DashboardContainer>
   );
 };

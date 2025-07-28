@@ -10,7 +10,18 @@ const LoginContainer = styled.div`
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
+  padding: 16px;
+  
+  @media (max-width: 768px) {
+    padding: 12px;
+    align-items: flex-start;
+    padding-top: 40px;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 8px;
+    padding-top: 20px;
+  }
 `;
 
 const LoginCard = styled.div`
@@ -20,23 +31,59 @@ const LoginCard = styled.div`
   width: 100%;
   max-width: 400px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  
+  @media (max-width: 768px) {
+    padding: 32px 24px;
+    border-radius: 8px;
+    max-width: 100%;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 24px 20px;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  }
 `;
 
 const Logo = styled.div`
   text-align: center;
   margin-bottom: 32px;
   
+  @media (max-width: 768px) {
+    margin-bottom: 24px;
+  }
+  
+  @media (max-width: 480px) {
+    margin-bottom: 20px;
+  }
+  
   h1 {
     font-size: 32px;
     font-weight: bold;
     color: #2c3e50;
     margin: 0 0 8px 0;
+    
+    @media (max-width: 768px) {
+      font-size: 28px;
+    }
+    
+    @media (max-width: 480px) {
+      font-size: 24px;
+    }
   }
   
   p {
     color: #7f8c8d;
     margin: 0;
     font-size: 16px;
+    
+    @media (max-width: 768px) {
+      font-size: 15px;
+    }
+    
+    @media (max-width: 480px) {
+      font-size: 14px;
+    }
   }
 `;
 
@@ -172,9 +219,14 @@ const SocialButtons = styled.div`
   display: flex;
   gap: 12px;
   justify-content: center;
+  
+  @media (max-width: 480px) {
+    flex-direction: column;
+    gap: 8px;
+  }
 `;
 
-const SocialButton = styled.button`
+const SocialButton = styled.button<{ platform: 'google' | 'github' | 'discord' }>`
   flex: 1;
   padding: 12px;
   border: 2px solid #e1e8ed;
@@ -184,10 +236,53 @@ const SocialButton = styled.button`
   font-size: 14px;
   font-weight: 500;
   transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   
   &:hover {
-    border-color: #667eea;
-    color: #667eea;
+    ${props => {
+      switch (props.platform) {
+        case 'google':
+          return `
+            border-color: #db4437;
+            color: #db4437;
+            background: rgba(219, 68, 55, 0.05);
+          `;
+        case 'github':
+          return `
+            border-color: #333;
+            color: #333;
+            background: rgba(51, 51, 51, 0.05);
+          `;
+        case 'discord':
+          return `
+            border-color: #5865f2;
+            color: #5865f2;
+            background: rgba(88, 101, 242, 0.05);
+          `;
+        default:
+          return `
+            border-color: #667eea;
+            color: #667eea;
+          `;
+      }
+    }}
+  }
+  
+  svg {
+    ${props => {
+      switch (props.platform) {
+        case 'google':
+          return 'color: #db4437;';
+        case 'github':
+          return 'color: #333;';
+        case 'discord':
+          return 'color: #5865f2;';
+        default:
+          return 'color: inherit;';
+      }
+    }}
   }
 `;
 
@@ -290,13 +385,13 @@ export const LoginPage: React.FC = () => {
         </Divider>
         
         <SocialButtons>
-          <SocialButton onClick={() => alert('Próximamente: Login con Google')}>
+          <SocialButton platform="google" onClick={() => alert('Próximamente: Login con Google')}>
             Google
           </SocialButton>
-          <SocialButton onClick={() => alert('Próximamente: Login con GitHub')}>
+          <SocialButton platform="github" onClick={() => alert('Próximamente: Login con GitHub')}>
             GitHub
           </SocialButton>
-          <SocialButton onClick={() => alert('Próximamente: Login con Discord')}>
+          <SocialButton platform="discord" onClick={() => alert('Próximamente: Login con Discord')}>
             Discord
           </SocialButton>
         </SocialButtons>

@@ -5,6 +5,9 @@ interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   register: (name: string, email: string, password: string) => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  resetPassword: (token: string, newPassword: string) => Promise<void>;
+  validateResetToken: (token: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -121,11 +124,62 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     dispatch({ type: 'LOGOUT' });
   };
 
+  const requestPasswordReset = async (email: string): Promise<void> => {
+    try {
+      // Simulate API call to request password reset
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // En una aplicación real, aquí harías una llamada al backend
+      // que enviaría un email con el token de reset
+      console.log(`Password reset requested for: ${email}`);
+      
+      // Simular éxito
+      return Promise.resolve();
+    } catch (error) {
+      throw new Error('Error requesting password reset');
+    }
+  };
+
+  const validateResetToken = async (token: string): Promise<void> => {
+    try {
+      // Simulate API call to validate reset token
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // En una aplicación real, validarías el token con el backend
+      // Por ahora, simulamos que cualquier token que empiece con 'valid' es válido
+      if (!token || !token.startsWith('valid')) {
+        throw new Error('Invalid token');
+      }
+      
+      return Promise.resolve();
+    } catch (error) {
+      throw new Error('Invalid or expired token');
+    }
+  };
+
+  const resetPassword = async (token: string, newPassword: string): Promise<void> => {
+    try {
+      // Simulate API call to reset password
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // En una aplicación real, aquí actualizarías la contraseña en el backend
+      console.log(`Password reset for token: ${token}`);
+      
+      // Simular éxito
+      return Promise.resolve();
+    } catch (error) {
+      throw new Error('Error resetting password');
+    }
+  };
+
   const value: AuthContextType = {
     ...state,
     login,
     logout,
     register,
+    requestPasswordReset,
+    resetPassword,
+    validateResetToken,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
