@@ -2,12 +2,17 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { BoardProvider } from './context/BoardContext';
-import { LoginPage } from './pages/LoginPage';
-import { RegisterPage } from './pages/RegisterPage';
-import { DashboardPage } from './pages/DashboardPage';
-import { MyBoardsPage } from './pages/MyBoardsPage';
-import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
-import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import {
+  LoginPage,
+  RegisterPage,
+  DashboardPage,
+  MyBoardsPage,
+  SettingsPage,
+  ForgotPasswordPage,
+  ResetPasswordPage,
+  Templates,
+  Archive
+} from './pages';
 import './App.css';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -104,6 +109,30 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <MyBoardsPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/templates" 
+                element={
+                  <ProtectedRoute>
+                    <Templates />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/archive" 
+                element={
+                  <ProtectedRoute>
+                    <Archive />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/settings" 
+                element={
+                  <ProtectedRoute>
+                    <SettingsPage />
                   </ProtectedRoute>
                 } 
               />

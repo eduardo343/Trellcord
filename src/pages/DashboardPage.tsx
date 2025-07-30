@@ -20,6 +20,7 @@ import { Link } from 'react-router-dom';
 import { NewBoardModal } from '../components/NewBoardModal';
 import { JoinBoardModal } from '../components/JoinBoardModal';
 import { DeleteBoardModal } from '../components/DeleteBoardModal';
+import { UserDropdown } from '../components/UserDropdown';
 
 const DashboardContainer = styled.div`
   min-height: 100vh;
@@ -294,7 +295,7 @@ const ActivityIcon = styled.div`
 `;
 
 export const DashboardPage: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { boards } = useBoards();
   const [showNewBoardModal, setShowNewBoardModal] = useState(false);
   const [showJoinBoardModal, setShowJoinBoardModal] = useState(false);
@@ -345,13 +346,9 @@ export const DashboardPage: React.FC = () => {
           <IconButton>
             <Bell size={20} />
           </IconButton>
-          <UserButton onClick={logout}>
-            <User size={20} />
-            <span>{user?.name}</span>
-          </UserButton>
-          <IconButton>
-            <Settings size={20} />
-          </IconButton>
+          <UserDropdown />
+          <Link to="/settings">
+          </Link>
         </HeaderRight>
       </Header>
 
@@ -371,22 +368,24 @@ export const DashboardPage: React.FC = () => {
             <Users size={20} />
             <span>Teams</span>
           </SidebarItem>
-          <SidebarItem>
-            <Star size={20} />
-            <span>Starred</span>
-          </SidebarItem>
-          <SidebarItem>
-            <Folder size={20} />
-            <span>Templates</span>
-          </SidebarItem>
-          <SidebarItem>
-            <Archive size={20} />
-            <span>Archive</span>
-          </SidebarItem>
-          <SidebarItem>
-            <Settings size={20} />
-            <span>Settings</span>
-          </SidebarItem>
+          <Link to="/templates" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <SidebarItem>
+              <Folder size={20} />
+              <span>Templates</span>
+            </SidebarItem>
+          </Link>
+          <Link to="/archive" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <SidebarItem>
+              <Archive size={20} />
+              <span>Archive</span>
+            </SidebarItem>
+          </Link>
+          <Link to="/settings" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <SidebarItem>
+              <Settings size={20} />
+              <span>Settings</span>
+            </SidebarItem>
+          </Link>
         </Sidebar>
 
         <Content>
