@@ -423,7 +423,7 @@ const EmptyState = styled.div`
 
 export const MyBoardsPage: React.FC = () => {
   const { user } = useAuth();
-  const { boards, starBoard, unstarBoard, deleteBoard } = useBoards();
+  const { boards, starBoard, unstarBoard, deleteBoard, archiveBoard } = useBoards();
   const [currentFilter, setCurrentFilter] = useState<'all' | 'starred' | 'recent'>('all');
   const [currentView, setCurrentView] = useState<'grid' | 'list'>('grid');
   const [showNewBoardModal, setShowNewBoardModal] = useState(false);
@@ -582,6 +582,23 @@ export const MyBoardsPage: React.FC = () => {
                   <Plus size={16} />
                   Join Board
                 </SecondaryButton>
+                 <SecondaryButton 
+                                onClick={() => {
+                                  if (boards.length > 0) {
+                                    archiveBoard(boards[0].id);
+                                  } else {
+                                    alert('No boards to archive.');
+                                  }
+                                }}
+                                disabled={boards.length === 0}
+                                style={{
+                                  opacity: boards.length === 0 ? 0.5 : 1,
+                                  cursor: boards.length === 0 ? 'not-allowed' : 'pointer'
+                                }}
+                              >
+                                <Archive size={16} />
+                                Archive Board
+                              </SecondaryButton>
               </QuickActions>
               
               <FilterButton>

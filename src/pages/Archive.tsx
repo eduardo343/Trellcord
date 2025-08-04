@@ -10,7 +10,7 @@ import {
   Search,
   Bell
 } from 'lucide-react';
-import { useArchive } from '../hooks/useArchive';
+import { useBoards } from '../context/BoardContext';
 import { ArchiveItem } from '../components/ArchiveItem';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
@@ -250,35 +250,13 @@ const LoadingSpinner = styled.div`
 `;
 
 export const Archive: React.FC = () => {
-  const { archivedItems, isLoading, restoreItem, deleteItemPermanently } = useArchive();
+  const { archivedBoards, restoreBoard, isLoading } = useBoards();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'board' | 'card'>('all');
 
-  const filteredItems = archivedItems.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = filterType === 'all' || item.type === filterType;
-    return matchesSearch && matchesType;
-  });
+  const filteredBoards = archivedBoards.filter(board =>
+    board.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const handleRestore = async (itemId: string) => {
-    try {
-      await restoreItem(itemId);
-      alert('¡Elemento restaurado exitosamente!');
-    } catch (error) {
-      console.error('Error restoring item:', error);
-    }
-  };
-
-  const handleDelete = async (itemId: string) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar este elemento permanentemente? Esta acción no se puede deshacer.')) {
-      try {
-        await deleteItemPermanently(itemId);
-        alert('Elemento eliminado permanentemente.');
-      } catch (error) {
-        console.error('Error deleting item:', error);
-      }
-    }
-  };
 
   return (
     <DashboardContainer>
@@ -359,11 +337,6 @@ export const Archive: React.FC = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </SearchInput>
-            <FilterButtonGroup>
-              <FilterButton active={filterType === 'all'} onClick={() => setFilterType('all')}>Todos</FilterButton>
-              <FilterButton active={filterType === 'board'} onClick={() => setFilterType('board')}>Tableros</FilterButton>
-              <FilterButton active={filterType === 'card'} onClick={() => setFilterType('card')}>Tarjetas</FilterButton>
-            </FilterButtonGroup>
           </FilterContainer>
 
           {isLoading ? (
@@ -371,20 +344,18 @@ export const Archive: React.FC = () => {
               <div className="spinner"></div>
               <span>Cargando elementos...</span>
             </LoadingSpinner>
-          ) : filteredItems.length === 0 ? (
+          ) : filteredBoards.length === 0 ? (
             <EmptyState>
-              <h3>No se encontraron elementos</h3>
-              <p>Prueba con otro término de búsqueda o cambia de filtro.</p>
+              <h3>No se encontraron tableros archivados</h3>
+              <p>Intenta usar otro término de búsqueda.</p>
             </EmptyState>
           ) : (
             <div>
-              {filteredItems.map(item => (
-                <ArchiveItem
-                  key={item.id}
-                  item={item}
-                  onRestore={handleRestore}
-                  onDelete={handleDelete}
-                />
+              {filteredBoards.map(board => (
+                <div key={board.id} style={{ marginBottom: '16px' }}>
+                  <h3 style={{ margin: '0 0 4px 0', color: '#2c3e50' }}>{board.title}</h3>
+                  <button onClick={() => restoreBoard(board.id)}>Restore</button>
+                </div>
               ))}
             </div>
           )}

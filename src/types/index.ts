@@ -91,8 +91,18 @@ export interface AuthState {
   isLoading: boolean;
 }
 
+export interface ArchivedBoard {
+  id: string;
+  title: string;
+  description?: string;
+  members: User[];
+  archivedAt: Date;
+  originalBoard: Board;
+}
+
 export interface BoardState {
   boards: Board[];
+  archivedBoards: ArchivedBoard[];
   currentBoard: Board | null;
   isLoading: boolean;
 }

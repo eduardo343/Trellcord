@@ -1,11 +1,13 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
-import { Board, BoardState, User } from '../types';
+import { Board, BoardState, User, ArchivedBoard } from '../types';
 
 interface BoardContextType extends BoardState {
   createBoard: (title: string, description?: string) => Promise<void>;
   joinBoard: (inviteCode: string) => Promise<void>;
   saveBoard: (board: Board) => Promise<void>;
   deleteBoard: (boardId: string) => Promise<void>;
+  archiveBoard: (boardId: string) => Promise<void>;
+  restoreBoard: (archivedBoardId: string) => Promise<void>;
   starBoard: (boardId: string) => Promise<void>;
   unstarBoard: (boardId: string) => Promise<void>;
 }
@@ -18,6 +20,9 @@ type BoardAction =
   | { type: 'ADD_BOARD'; payload: Board }
   | { type: 'UPDATE_BOARD'; payload: Board }
   | { type: 'DELETE_BOARD'; payload: string }
+  | { type: 'ARCHIVE_BOARD'; payload: string }
+  | { type: 'ADD_ARCHIVED_BOARD'; payload: ArchivedBoard }
+  | { type: 'RESTORE_BOARD'; payload: string }
   | { type: 'SET_CURRENT_BOARD'; payload: Board | null };
 
 const boardReducer = (state: BoardState, action: BoardAction): BoardState => {
@@ -55,6 +60,30 @@ const boardReducer = (state: BoardState, action: BoardAction): BoardState => {
           : state.currentBoard,
         isLoading: false
       };
+    case 'ARCHIVE_BOARD':
+      return {
+        ...state,
+        boards: state.boards.filter(board => board.id !== action.payload),
+        currentBoard: state.currentBoard?.id === action.payload ? null : state.currentBoard,
+        isLoading: false
+      };
+    case 'ADD_ARCHIVED_BOARD':
+      return {
+        ...state,
+        archivedBoards: [...state.archivedBoards, action.payload],
+        isLoading: false
+      };
+    case 'RESTORE_BOARD':
+      const archivedBoard = state.archivedBoards.find(ab => ab.id === action.payload);
+      if (archivedBoard) {
+        return {
+          ...state,
+          boards: [...state.boards, archivedBoard.originalBoard],
+          archivedBoards: state.archivedBoards.filter(ab => ab.id !== action.payload),
+          isLoading: false
+        };
+      }
+      return { ...state, isLoading: false };
     case 'SET_CURRENT_BOARD':
       return { ...state, currentBoard: action.payload };
     default:
@@ -124,6 +153,7 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
         updatedAt: new Date('2024-01-18')
       }
     ],
+    archivedBoards: [],
     currentBoard: null,
     isLoading: false,
   });
@@ -241,12 +271,61 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     }
   };
 
+  const archiveBoard = async (boardId: string): Promise<void> => {
+    console.log('📦 BoardContext: archiveBoard called with ID:', boardId);
+    dispatch({ type: 'SET_LOADING', payload: true });
+    
+    try {
+      const boardToArchive = state.boards.find(board => board.id === boardId);
+      if (boardToArchive) {
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const archivedBoard: ArchivedBoard = {
+          id: boardToArchive.id,
+          title: boardToArchive.title,
+          description: boardToArchive.description,
+          members: boardToArchive.members,
+          archivedAt: new Date(),
+          originalBoard: boardToArchive
+        };
+        
+        dispatch({ type: 'ARCHIVE_BOARD', payload: boardId });
+        dispatch({ type: 'ADD_ARCHIVED_BOARD', payload: archivedBoard });
+        console.log('✅ BoardContext: Board archived successfully');
+      }
+    } catch (error) {
+      console.error('❌ BoardContext: Error archiving board:', error);
+      dispatch({ type: 'SET_LOADING', payload: false });
+      throw error;
+    }
+  };
+
+  const restoreBoard = async (archivedBoardId: string): Promise<void> => {
+    console.log('🔄 BoardContext: restoreBoard called with ID:', archivedBoardId);
+    dispatch({ type: 'SET_LOADING', payload: true });
+    
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      dispatch({ type: 'RESTORE_BOARD', payload: archivedBoardId });
+      console.log('✅ BoardContext: Board restored successfully');
+    } catch (error) {
+      console.error('❌ BoardContext: Error restoring board:', error);
+      dispatch({ type: 'SET_LOADING', payload: false });
+      throw error;
+    }
+  };
+
   const value: BoardContextType = {
     ...state,
     createBoard,
     joinBoard,
     saveBoard,
     deleteBoard,
+    archiveBoard,
+    restoreBoard,
     starBoard,
     unstarBoard,
   };

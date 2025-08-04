@@ -296,7 +296,7 @@ const ActivityIcon = styled.div`
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
-  const { boards } = useBoards();
+  const { boards, archiveBoard } = useBoards();
   const [showNewBoardModal, setShowNewBoardModal] = useState(false);
   const [showJoinBoardModal, setShowJoinBoardModal] = useState(false);
   const [showDeleteBoardModal, setShowDeleteBoardModal] = useState(false);
@@ -416,6 +416,23 @@ export const DashboardPage: React.FC = () => {
               <SecondaryButton onClick={() => setShowJoinBoardModal(true)}>
                 <Plus size={16} />
                 Join Board
+              </SecondaryButton>
+              <SecondaryButton 
+                onClick={() => {
+                  if (boards.length > 0) {
+                    archiveBoard(boards[0].id);
+                  } else {
+                    alert('No boards to archive.');
+                  }
+                }}
+                disabled={boards.length === 0}
+                style={{
+                  opacity: boards.length === 0 ? 0.5 : 1,
+                  cursor: boards.length === 0 ? 'not-allowed' : 'pointer'
+                }}
+              >
+                <Archive size={16} />
+                Archive Board
               </SecondaryButton>
             </QuickActions>
           </Section>
