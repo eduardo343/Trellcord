@@ -226,6 +226,137 @@ const EmptyState = styled.div`
   }
 `;
 
+const ArchivedBoardsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  margin-top: 24px;
+`;
+
+const ArchivedBoardCard = styled.div`
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 2px solid #e1e8ed;
+  transition: all 0.3s ease;
+  position: relative;
+  
+  &:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+    transform: translateY(-2px);
+  }
+`;
+
+const ArchivedBoardHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+`;
+
+const BoardTitleSection = styled.div`
+  flex: 1;
+  
+  h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  p {
+    color: #7f8c8d;
+    font-size: 14px;
+    margin: 0;
+    line-height: 1.4;
+  }
+`;
+
+const ArchiveLabel = styled.div`
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 16px;
+`;
+
+const BoardMeta = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  font-size: 12px;
+  color: #95a5a6;
+`;
+
+const MetaItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
+
+const ActionButtons = styled.div`
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+`;
+
+const RestoreButton = styled.button`
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  &:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+`;
+
+const DeleteButton = styled.button`
+  background: white;
+  color: #e74c3c;
+  border: 2px solid #e74c3c;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  
+  &:hover {
+    background: #e74c3c;
+    color: white;
+  }
+`;
+
 const LoadingSpinner = styled.div`
   display: flex;
   flex-direction: column;
@@ -350,14 +481,48 @@ export const Archive: React.FC = () => {
               <p>Intenta usar otro término de búsqueda.</p>
             </EmptyState>
           ) : (
-            <div>
+            <ArchivedBoardsGrid>
               {filteredBoards.map(board => (
-                <div key={board.id} style={{ marginBottom: '16px' }}>
-                  <h3 style={{ margin: '0 0 4px 0', color: '#2c3e50' }}>{board.title}</h3>
-                  <button onClick={() => restoreBoard(board.id)}>Restore</button>
-                </div>
+                <ArchivedBoardCard key={board.id}>
+                  <ArchiveLabel>
+                    <ArchiveIcon size={12} />
+                    Archived
+                  </ArchiveLabel>
+                  
+                  <ArchivedBoardHeader>
+                    <BoardTitleSection>
+                      <h3>
+                        <Trello size={20} />
+                        {board.title}
+                      </h3>
+                      <p>{board.description || 'No description available'}</p>
+                    </BoardTitleSection>
+                  </ArchivedBoardHeader>
+                  
+                  <BoardMeta>
+                    <MetaItem>
+                      <Users size={14} />
+                      {board.members?.length || 0} members
+                    </MetaItem>
+                    <MetaItem>
+                      <Folder size={14} />
+                      {board.originalBoard?.lists?.length || 0} lists
+                    </MetaItem>
+                  </BoardMeta>
+                  
+                  <ActionButtons>
+                    <RestoreButton onClick={() => restoreBoard(board.id)}>
+                      <ArchiveIcon size={16} />
+                      Restore Board
+                    </RestoreButton>
+                    <DeleteButton>
+                      <Settings size={14} />
+                      Delete
+                    </DeleteButton>
+                  </ActionButtons>
+                </ArchivedBoardCard>
               ))}
-            </div>
+            </ArchivedBoardsGrid>
           )}
         </Content>
       </MainContent>
