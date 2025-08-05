@@ -6,6 +6,7 @@ interface BoardContextType extends BoardState {
   joinBoard: (inviteCode: string) => Promise<void>;
   saveBoard: (board: Board) => Promise<void>;
   deleteBoard: (boardId: string) => Promise<void>;
+  deleteArchivedBoard: (archivedBoardId: string) => Promise<void>;
   archiveBoard: (boardId: string) => Promise<void>;
   restoreBoard: (archivedBoardId: string) => Promise<void>;
   starBoard: (boardId: string) => Promise<void>;
@@ -20,6 +21,7 @@ type BoardAction =
   | { type: 'ADD_BOARD'; payload: Board }
   | { type: 'UPDATE_BOARD'; payload: Board }
   | { type: 'DELETE_BOARD'; payload: string }
+  | { type: 'DELETE_ARCHIVED_BOARD'; payload: string }
   | { type: 'ARCHIVE_BOARD'; payload: string }
   | { type: 'ADD_ARCHIVED_BOARD'; payload: ArchivedBoard }
   | { type: 'RESTORE_BOARD'; payload: string }
@@ -71,6 +73,19 @@ const boardReducer = (state: BoardState, action: BoardAction): BoardState => {
       return {
         ...state,
         archivedBoards: [...state.archivedBoards, action.payload],
+        isLoading: false
+      };
+    case 'DELETE_ARCHIVED_BOARD':
+      console.log('🗑️ Reducer: DELETE_ARCHIVED_BOARD action received');
+      console.log('🎯 Reducer: Target archived board ID:', action.payload);
+      console.log('📦 Reducer: Current archived boards:', state.archivedBoards.map(b => ({ id: b.id, title: b.title })));
+      
+      const filteredArchivedBoards = state.archivedBoards.filter(board => board.id !== action.payload);
+      console.log('📦 Reducer: Archived boards after filter:', filteredArchivedBoards.map(b => ({ id: b.id, title: b.title })));
+      
+      return {
+        ...state,
+        archivedBoards: filteredArchivedBoards,
         isLoading: false
       };
     case 'RESTORE_BOARD':
@@ -153,7 +168,52 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
         updatedAt: new Date('2024-01-18')
       }
     ],
-    archivedBoards: [],
+    archivedBoards: [
+      {
+        id: 'archived-1',
+        title: 'Old Project Board',
+        description: 'A completed project that was archived',
+        members: [
+          { id: '1', name: 'Alan Ugarte', email: 'alan@example.com', isOnline: true },
+          { id: '2', name: 'Sarah Wilson', email: 'sarah@example.com', isOnline: false }
+        ],
+        archivedAt: new Date('2024-01-10'),
+        originalBoard: {
+          id: 'archived-1',
+          title: 'Old Project Board',
+          description: 'A completed project that was archived',
+          isStarred: false,
+          members: [
+            { id: '1', name: 'Alan Ugarte', email: 'alan@example.com', isOnline: true },
+            { id: '2', name: 'Sarah Wilson', email: 'sarah@example.com', isOnline: false }
+          ],
+          lists: [],
+          createdAt: new Date('2023-12-01'),
+          updatedAt: new Date('2024-01-10')
+        }
+      },
+      {
+        id: 'archived-2',
+        title: 'Legacy Feature Planning',
+        description: 'Old feature planning board',
+        members: [
+          { id: '1', name: 'Alan Ugarte', email: 'alan@example.com', isOnline: true }
+        ],
+        archivedAt: new Date('2024-01-05'),
+        originalBoard: {
+          id: 'archived-2',
+          title: 'Legacy Feature Planning',
+          description: 'Old feature planning board',
+          isStarred: false,
+          members: [
+            { id: '1', name: 'Alan Ugarte', email: 'alan@example.com', isOnline: true }
+          ],
+          lists: [],
+          createdAt: new Date('2023-11-15'),
+          updatedAt: new Date('2024-01-05')
+        }
+      }
+    ],
     currentBoard: null,
     isLoading: false,
   });
@@ -318,12 +378,35 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     }
   };
 
+  const deleteArchivedBoard = async (archivedBoardId: string): Promise<void> => {
+    console.log('🗑️ BoardContext: deleteArchivedBoard called with ID:', archivedBoardId);
+    console.log('📦 BoardContext: Current archived boards before delete:', state.archivedBoards.map(b => ({ id: b.id, title: b.title })));
+    
+    dispatch({ type: 'SET_LOADING', payload: true });
+    console.log('⏳ BoardContext: Set loading to true');
+    
+    try {
+      // Simulate API call
+      console.log('🌐 BoardContext: Simulating API call...');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      console.log('🚀 BoardContext: Dispatching DELETE_ARCHIVED_BOARD action');
+      dispatch({ type: 'DELETE_ARCHIVED_BOARD', payload: archivedBoardId });
+      console.log('✅ BoardContext: DELETE_ARCHIVED_BOARD action dispatched');
+    } catch (error) {
+      console.error('❌ BoardContext: Error in deleteArchivedBoard:', error);
+      dispatch({ type: 'SET_LOADING', payload: false });
+      throw error;
+    }
+  };
+
   const value: BoardContextType = {
     ...state,
     createBoard,
     joinBoard,
     saveBoard,
     deleteBoard,
+    deleteArchivedBoard,
     archiveBoard,
     restoreBoard,
     starBoard,

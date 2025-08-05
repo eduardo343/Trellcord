@@ -381,12 +381,24 @@ const LoadingSpinner = styled.div`
 `;
 
 export const Archive: React.FC = () => {
-  const { archivedBoards, restoreBoard, isLoading } = useBoards();
+  const { archivedBoards, restoreBoard, deleteArchivedBoard, isLoading } = useBoards();
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredBoards = archivedBoards.filter(board =>
     board.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleDeleteBoard = async (boardId: string) => {
+    const board = archivedBoards.find(b => b.id === boardId);
+    if (board && window.confirm(`Are you sure you want to permanently delete "${board.title}"? This action cannot be undone.`)) {
+      try {
+        await deleteArchivedBoard(boardId);
+      } catch (error) {
+        console.error('Error deleting archived board:', error);
+        alert('Failed to delete the board. Please try again.');
+      }
+    }
+  };
 
 
   return (
@@ -515,7 +527,7 @@ export const Archive: React.FC = () => {
                       <ArchiveIcon size={16} />
                       Restore Board
                     </RestoreButton>
-                    <DeleteButton>
+                    <DeleteButton onClick={() => handleDeleteBoard(board.id)}>
                       <Settings size={14} />
                       Delete
                     </DeleteButton>
