@@ -25,17 +25,17 @@ export class DatabaseFactory {
 export const DATABASE_CONFIGS = {
   development: {
     name: 'trellcord_dev',
-    version: 1,
-    storage: 'localStorage' as const
+    version: 2, // Actualizado para incluir comments, attachments, notifications, userSettings
+    storage: 'indexedDB' as const
   },
   production: {
     name: 'trellcord',
-    version: 1,
+    version: 2, // Actualizado para incluir comments, attachments, notifications, userSettings
     storage: 'indexedDB' as const
   },
   test: {
     name: 'trellcord_test',
-    version: 1,
-    storage: 'localStorage' as const
+    version: 2, // Actualizado para incluir comments, attachments, notifications, userSettings
+    storage: 'indexedDB' as const
   }
 } as const;

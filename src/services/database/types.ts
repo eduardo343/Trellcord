@@ -1,4 +1,4 @@
-import { Board, ArchivedBoard, User, List, Card, ChatMessage, Activity } from '../../types';
+import { Board, ArchivedBoard, User, List, Card, ChatMessage, Activity, Comment, Attachment, Notification, UserSettings } from '../../types';
 
 export interface DatabaseService {
   // Board operations
@@ -39,6 +39,30 @@ export interface DatabaseService {
   // Activity operations
   getActivities(boardId: string): Promise<Activity[]>;
   createActivity(activity: Omit<Activity, 'id' | 'createdAt'>): Promise<Activity>;
+  
+  // Comment operations
+  getComments(cardId: string): Promise<Comment[]>;
+  getCommentById(id: string): Promise<Comment | null>;
+  createComment(comment: Omit<Comment, 'id' | 'createdAt'>): Promise<Comment>;
+  updateComment(id: string, updates: Partial<Comment>): Promise<Comment>;
+  deleteComment(id: string): Promise<void>;
+  
+  // Attachment operations
+  getAttachments(cardId: string): Promise<Attachment[]>;
+  getAttachmentById(id: string): Promise<Attachment | null>;
+  createAttachment(attachment: Omit<Attachment, 'id' | 'uploadedAt'>): Promise<Attachment>;
+  deleteAttachment(id: string): Promise<void>;
+  
+  // Notification operations
+  getNotifications(userId: string): Promise<Notification[]>;
+  getUnreadNotifications(userId: string): Promise<Notification[]>;
+  createNotification(notification: Omit<Notification, 'id' | 'createdAt'>): Promise<Notification>;
+  markNotificationAsRead(id: string): Promise<void>;
+  markAllNotificationsAsRead(userId: string): Promise<void>;
+  
+  // User Settings operations
+  getUserSettings(userId: string): Promise<UserSettings | null>;
+  updateUserSettings(userId: string, settings: Partial<UserSettings>): Promise<UserSettings>;
   
   // Utility operations
   initialize(): Promise<void>;

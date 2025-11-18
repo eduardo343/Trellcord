@@ -1,4 +1,4 @@
-import { Board, ArchivedBoard, User, List, Card, ChatMessage, Activity } from '../../types';
+import { Board, ArchivedBoard, User, List, Card, ChatMessage, Activity, Comment, Attachment, Notification, UserSettings } from '../../types';
 import { DatabaseService, DatabaseConfig } from './types';
 
 export class IndexedDBService implements DatabaseService {
@@ -26,7 +26,8 @@ export class IndexedDBService implements DatabaseService {
         // Create object stores
         const stores = [
           'boards', 'archivedBoards', 'lists', 'cards', 
-          'users', 'messages', 'activities'
+          'users', 'messages', 'activities', 'comments',
+          'attachments', 'notifications', 'userSettings'
         ];
 
         stores.forEach(storeName => {
@@ -46,6 +47,19 @@ export class IndexedDBService implements DatabaseService {
                 break;
               case 'activities':
                 store.createIndex('boardId', 'boardId', { unique: false });
+                break;
+              case 'comments':
+                store.createIndex('cardId', 'cardId', { unique: false });
+                break;
+              case 'attachments':
+                store.createIndex('cardId', 'cardId', { unique: false });
+                break;
+              case 'notifications':
+                store.createIndex('userId', 'userId', { unique: false });
+                store.createIndex('read', 'read', { unique: false });
+                break;
+              case 'userSettings':
+                store.createIndex('userId', 'userId', { unique: true });
                 break;
             }
           }
@@ -376,10 +390,182 @@ export class IndexedDBService implements DatabaseService {
     return await this.saveToStore('activities', newActivity);
   }
 
+  // Comment operations
+  async getComments(cardId: string): Promise<Comment[]> {
+    const comments = await this.getFromIndex<Comment>('comments', 'cardId', cardId);
+    return comments.map(comment => ({
+      ...comment,
+      createdAt: new Date(comment.createdAt),
+      updatedAt: comment.updatedAt ? new Date(comment.updatedAt) : undefined
+    }));
+  }
+
+  async getCommentById(id: string): Promise<Comment | null> {
+    const comments = await this.getFromStore<Comment>('comments', id);
+    if (comments.length === 0) return null;
+    
+    const comment = comments[0];
+    return {
+      ...comment,
+      createdAt: new Date(comment.createdAt),
+      updatedAt: comment.updatedAt ? new Date(comment.updatedAt) : undefined
+    };
+  }
+
+  async createComment(commentData: Omit<Comment, 'id' | 'createdAt'>): Promise<Comment> {
+    const newComment: Comment = {
+      ...commentData,
+      id: this.generateId(),
+      createdAt: new Date()
+    };
+    
+    return await this.saveToStore('comments', newComment);
+  }
+
+  async updateComment(id: string, updates: Partial<Comment>): Promise<Comment> {
+    const comments = await this.getFromStore<Comment>('comments', id);
+    if (comments.length === 0) {
+      throw new Error(`Comment with id ${id} not found`);
+    }
+    
+    const updatedComment: Comment = {
+      ...comments[0],
+      ...updates,
+      updatedAt: new Date()
+    };
+    
+    return await this.saveToStore('comments', updatedComment);
+  }
+
+  async deleteComment(id: string): Promise<void> {
+    await this.deleteFromStore('comments', id);
+  }
+
+  // Attachment operations
+  async getAttachments(cardId: string): Promise<Attachment[]> {
+    const attachments = await this.getFromIndex<Attachment>('attachments', 'cardId', cardId);
+    return attachments.map(attachment => ({
+      ...attachment,
+      uploadedAt: new Date(attachment.uploadedAt)
+    }));
+  }
+
+  async getAttachmentById(id: string): Promise<Attachment | null> {
+    const attachments = await this.getFromStore<Attachment>('attachments', id);
+    if (attachments.length === 0) return null;
+    
+    const attachment = attachments[0];
+    return {
+      ...attachment,
+      uploadedAt: new Date(attachment.uploadedAt)
+    };
+  }
+
+  async createAttachment(attachmentData: Omit<Attachment, 'id' | 'uploadedAt'>): Promise<Attachment> {
+    const newAttachment: Attachment = {
+      ...attachmentData,
+      id: this.generateId(),
+      uploadedAt: new Date()
+    };
+    
+    return await this.saveToStore('attachments', newAttachment);
+  }
+
+  async deleteAttachment(id: string): Promise<void> {
+    await this.deleteFromStore('attachments', id);
+  }
+
+  // Notification operations
+  async getNotifications(userId: string): Promise<Notification[]> {
+    const notifications = await this.getFromIndex<Notification>('notifications', 'userId', userId);
+    return notifications.map(notification => ({
+      ...notification,
+      createdAt: new Date(notification.createdAt)
+    })).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getUnreadNotifications(userId: string): Promise<Notification[]> {
+    const allNotifications = await this.getNotifications(userId);
+    return allNotifications.filter(n => !n.read);
+  }
+
+  async createNotification(notificationData: Omit<Notification, 'id' | 'createdAt'>): Promise<Notification> {
+    const newNotification: Notification = {
+      ...notificationData,
+      id: this.generateId(),
+      createdAt: new Date()
+    };
+    
+    return await this.saveToStore('notifications', newNotification);
+  }
+
+  async markNotificationAsRead(id: string): Promise<void> {
+    const notifications = await this.getFromStore<Notification>('notifications', id);
+    if (notifications.length > 0) {
+      const updated = { ...notifications[0], read: true };
+      await this.saveToStore('notifications', updated);
+    }
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    const notifications = await this.getNotifications(userId);
+    for (const notification of notifications) {
+      if (!notification.read) {
+        await this.saveToStore('notifications', { ...notification, read: true });
+      }
+    }
+  }
+
+  // User Settings operations
+  async getUserSettings(userId: string): Promise<UserSettings | null> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['userSettings'], 'readonly');
+      const store = transaction.objectStore('userSettings');
+      const index = store.index('userId');
+      
+      const request = index.get(userId);
+      
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async updateUserSettings(userId: string, settings: Partial<UserSettings>): Promise<UserSettings> {
+    const existing = await this.getUserSettings(userId);
+    
+    const updatedSettings: UserSettings = existing
+      ? { ...existing, ...settings }
+      : {
+          userId,
+          emailNotifications: {
+            enabled: true,
+            onBoardUpdate: true,
+            onCardAssigned: true,
+            onCommentMention: true,
+            onDueDateReminder: true,
+            frequency: 'instant'
+          },
+          pushNotifications: true,
+          boardUpdates: true,
+          mentions: true,
+          ...settings
+        };
+    
+    // Use userId as the id for the settings
+    const settingsWithId = { ...updatedSettings, id: userId };
+    return await this.saveToStore('userSettings', settingsWithId);
+  }
+
   async clear(): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
-    const stores = ['boards', 'archivedBoards', 'lists', 'cards', 'users', 'messages', 'activities'];
+    const stores = [
+      'boards', 'archivedBoards', 'lists', 'cards', 
+      'users', 'messages', 'activities', 'comments',
+      'attachments', 'notifications', 'userSettings'
+    ];
     
     for (const storeName of stores) {
       await new Promise<void>((resolve, reject) => {

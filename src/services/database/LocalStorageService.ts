@@ -1,4 +1,4 @@
-import { Board, ArchivedBoard, User, List, Card, ChatMessage, Activity } from '../../types';
+import { Board, ArchivedBoard, User, List, Card, ChatMessage, Activity, Comment, Attachment, Notification, UserSettings } from '../../types';
 import { DatabaseService, DatabaseConfig } from './types';
 
 export class LocalStorageService implements DatabaseService {
@@ -326,8 +326,201 @@ export class LocalStorageService implements DatabaseService {
     return newActivity;
   }
 
+  // Comment operations
+  async getComments(cardId: string): Promise<Comment[]> {
+    return this.getFromStorage<Comment>('comments')
+      .filter(comment => comment.cardId === cardId)
+      .map(comment => ({
+        ...comment,
+        createdAt: new Date(comment.createdAt),
+        updatedAt: comment.updatedAt ? new Date(comment.updatedAt) : undefined
+      }));
+  }
+
+  async getCommentById(id: string): Promise<Comment | null> {
+    const comments = this.getFromStorage<Comment>('comments');
+    const comment = comments.find(c => c.id === id);
+    if (!comment) return null;
+    
+    return {
+      ...comment,
+      createdAt: new Date(comment.createdAt),
+      updatedAt: comment.updatedAt ? new Date(comment.updatedAt) : undefined
+    };
+  }
+
+  async createComment(commentData: Omit<Comment, 'id' | 'createdAt'>): Promise<Comment> {
+    const comments = this.getFromStorage<Comment>('comments');
+    const newComment: Comment = {
+      ...commentData,
+      id: this.generateId(),
+      createdAt: new Date()
+    };
+    
+    comments.push(newComment);
+    this.saveToStorage('comments', comments);
+    return newComment;
+  }
+
+  async updateComment(id: string, updates: Partial<Comment>): Promise<Comment> {
+    const comments = this.getFromStorage<Comment>('comments');
+    const commentIndex = comments.findIndex(c => c.id === id);
+    
+    if (commentIndex === -1) {
+      throw new Error(`Comment with id ${id} not found`);
+    }
+    
+    comments[commentIndex] = {
+      ...comments[commentIndex],
+      ...updates,
+      updatedAt: new Date()
+    };
+    
+    this.saveToStorage('comments', comments);
+    return {
+      ...comments[commentIndex],
+      createdAt: new Date(comments[commentIndex].createdAt),
+      updatedAt: new Date()
+    };
+  }
+
+  async deleteComment(id: string): Promise<void> {
+    const comments = this.getFromStorage<Comment>('comments');
+    const filteredComments = comments.filter(c => c.id !== id);
+    this.saveToStorage('comments', filteredComments);
+  }
+
+  // Attachment operations
+  async getAttachments(cardId: string): Promise<Attachment[]> {
+    return this.getFromStorage<Attachment>('attachments')
+      .filter(attachment => attachment.cardId === cardId)
+      .map(attachment => ({
+        ...attachment,
+        uploadedAt: new Date(attachment.uploadedAt)
+      }));
+  }
+
+  async getAttachmentById(id: string): Promise<Attachment | null> {
+    const attachments = this.getFromStorage<Attachment>('attachments');
+    const attachment = attachments.find(a => a.id === id);
+    if (!attachment) return null;
+    
+    return {
+      ...attachment,
+      uploadedAt: new Date(attachment.uploadedAt)
+    };
+  }
+
+  async createAttachment(attachmentData: Omit<Attachment, 'id' | 'uploadedAt'>): Promise<Attachment> {
+    const attachments = this.getFromStorage<Attachment>('attachments');
+    const newAttachment: Attachment = {
+      ...attachmentData,
+      id: this.generateId(),
+      uploadedAt: new Date()
+    };
+    
+    attachments.push(newAttachment);
+    this.saveToStorage('attachments', attachments);
+    return newAttachment;
+  }
+
+  async deleteAttachment(id: string): Promise<void> {
+    const attachments = this.getFromStorage<Attachment>('attachments');
+    const filteredAttachments = attachments.filter(a => a.id !== id);
+    this.saveToStorage('attachments', filteredAttachments);
+  }
+
+  // Notification operations
+  async getNotifications(userId: string): Promise<Notification[]> {
+    return this.getFromStorage<Notification>('notifications')
+      .filter(notification => notification.userId === userId)
+      .map(notification => ({
+        ...notification,
+        createdAt: new Date(notification.createdAt)
+      }))
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getUnreadNotifications(userId: string): Promise<Notification[]> {
+    const allNotifications = await this.getNotifications(userId);
+    return allNotifications.filter(n => !n.read);
+  }
+
+  async createNotification(notificationData: Omit<Notification, 'id' | 'createdAt'>): Promise<Notification> {
+    const notifications = this.getFromStorage<Notification>('notifications');
+    const newNotification: Notification = {
+      ...notificationData,
+      id: this.generateId(),
+      createdAt: new Date()
+    };
+    
+    notifications.push(newNotification);
+    this.saveToStorage('notifications', notifications);
+    return newNotification;
+  }
+
+  async markNotificationAsRead(id: string): Promise<void> {
+    const notifications = this.getFromStorage<Notification>('notifications');
+    const notificationIndex = notifications.findIndex(n => n.id === id);
+    
+    if (notificationIndex !== -1) {
+      notifications[notificationIndex].read = true;
+      this.saveToStorage('notifications', notifications);
+    }
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    const notifications = this.getFromStorage<Notification>('notifications');
+    const updatedNotifications = notifications.map(n => 
+      n.userId === userId ? { ...n, read: true } : n
+    );
+    this.saveToStorage('notifications', updatedNotifications);
+  }
+
+  // User Settings operations
+  async getUserSettings(userId: string): Promise<UserSettings | null> {
+    const settings = this.getFromStorage<UserSettings>('userSettings');
+    return settings.find(s => s.userId === userId) || null;
+  }
+
+  async updateUserSettings(userId: string, settings: Partial<UserSettings>): Promise<UserSettings> {
+    const allSettings = this.getFromStorage<UserSettings>('userSettings');
+    const existingIndex = allSettings.findIndex(s => s.userId === userId);
+    
+    const updatedSettings: UserSettings = existingIndex !== -1
+      ? { ...allSettings[existingIndex], ...settings }
+      : {
+          userId,
+          emailNotifications: {
+            enabled: true,
+            onBoardUpdate: true,
+            onCardAssigned: true,
+            onCommentMention: true,
+            onDueDateReminder: true,
+            frequency: 'instant'
+          },
+          pushNotifications: true,
+          boardUpdates: true,
+          mentions: true,
+          ...settings
+        };
+    
+    if (existingIndex !== -1) {
+      allSettings[existingIndex] = updatedSettings;
+    } else {
+      allSettings.push(updatedSettings);
+    }
+    
+    this.saveToStorage('userSettings', allSettings);
+    return updatedSettings;
+  }
+
   async clear(): Promise<void> {
-    const keys = ['boards', 'archivedBoards', 'lists', 'cards', 'users', 'messages', 'activities'];
+    const keys = [
+      'boards', 'archivedBoards', 'lists', 'cards', 
+      'users', 'messages', 'activities', 'comments',
+      'attachments', 'notifications', 'userSettings'
+    ];
     keys.forEach(key => localStorage.removeItem(`${this.config.name}_${key}`));
   }
 
