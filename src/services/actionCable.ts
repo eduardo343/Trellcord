@@ -1,3 +1,5 @@
+import { API_BASE_URL } from '../config/api';
+
 type SubscriptionHandlers<TMessage> = {
   onConnected?: () => void;
   onDisconnected?: () => void;
@@ -10,10 +12,10 @@ type CableEnvelope<TMessage> = {
   identifier?: string;
 };
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api/v1';
-
 function cableUrl(token: string): string {
-  const origin = API_BASE_URL.replace(/\/api\/v1\/?$/, '');
+  const origin = API_BASE_URL.startsWith('http')
+    ? API_BASE_URL.replace(/\/api\/v1\/?$/, '')
+    : window.location.origin;
   const wsOrigin = origin.replace(/^http/, 'ws');
   return `${wsOrigin}/cable?token=${encodeURIComponent(token)}`;
 }

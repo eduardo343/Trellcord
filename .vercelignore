@@ -1,0 +1,12 @@
+backend/
+build/
+node_modules/
+docker-compose.yml
+DATABASE_IMPLEMENTATION.md
+FEATURES_GUIDE.md
+FORGOT_PASSWORD_README.md
+IMPLEMENTATION_SUMMARY.md
+QUICK_START.md
+RAILS_API_SETUP.md
+UI_IMPLEMENTATION_GUIDE.md
+test-archive.js

@@ -159,6 +159,23 @@ Implemented secure routing system:
    npm run build
    ```
 
+## ▲ Deploy on Vercel (Frontend)
+
+This repository is configured to deploy the React app in `/Users/alan/trellcord` to Vercel.
+
+1. **Import the repository in Vercel**
+2. **Set environment variable**
+   - `REACT_APP_API_URL=https://your-backend-domain.com/api/v1`
+3. **Build command**
+   - `npm run build:vercel`
+4. **Output directory**
+   - `build`
+
+Notes:
+- Frontend routes are configured with SPA fallback in `/Users/alan/trellcord/vercel.json`.
+- `/api` and `/cable` are excluded from the SPA rewrite so you can proxy them if needed.
+- The Rails API in `/Users/alan/trellcord/backend` should be deployed separately.
+
 ## 🎨 Design System
 
 ### Color Palette
