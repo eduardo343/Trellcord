@@ -1,0 +1,14 @@
+/log/*
+!/log/.keep
+/tmp/*
+!/tmp/.keep
+!/tmp/pids/
+!/tmp/pids/.keep
+/storage/*
+!/storage/.keep
+/tmp/storage/*
+!/tmp/storage/.keep
+/vendor/bundle
+/.env
+/db/*.sqlite3
+/db/*.sqlite3-journal

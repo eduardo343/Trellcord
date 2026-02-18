@@ -1,17 +1,15 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { 
+import {
   Home, 
   Trello, 
   Users, 
-  Star, 
   Folder, 
   Archive, 
   Settings,
   Plus,
   Search,
   Bell,
-  User,
   Grid,
   List,
   Filter,
@@ -21,9 +19,10 @@ import {
   Trash2,
   Copy,
   Share2,
-  Calendar
+  Calendar,
+  Gauge,
+  Minus
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 import { useBoards } from '../context/BoardContext';
 import { Link } from 'react-router-dom';
 import { NewBoardModal } from '../components/NewBoardModal';
@@ -102,19 +101,6 @@ const IconButton = styled.button`
   &:hover {
     background: #f1f3f5;
     color: #2c3e50;
-  }
-`;
-
-const UserButton = styled(IconButton)`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border-radius: 20px;
-  padding: 8px 12px;
-  
-  span {
-    font-size: 14px;
-    font-weight: 500;
   }
 `;
 
@@ -282,18 +268,29 @@ const BoardGrid = styled.div<{ view: 'grid' | 'list' }>`
   gap: ${props => props.view === 'grid' ? '16px' : '0'};
 `;
 
-const BoardCard = styled(Link)<{ view: 'grid' | 'list' }>`
+const BoardCard = styled(Link)<{ view: 'grid' | 'list'; accent?: string }>`
   display: ${props => props.view === 'grid' ? 'block' : 'flex'};
   background: white;
   border: 2px solid #e1e8ed;
   border-radius: 8px;
-  padding: 20px;
+  padding: ${props => (props.view === 'grid' ? '26px 20px 20px 20px' : '22px 20px 20px 20px')};
   text-decoration: none;
   color: inherit;
   transition: all 0.3s;
   position: relative;
+  overflow: hidden;
   margin-bottom: ${props => props.view === 'list' ? '12px' : '0'};
   align-items: ${props => props.view === 'list' ? 'center' : 'flex-start'};
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 8px;
+    background: ${props => props.accent || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'};
+  }
   
   &:hover {
     border-color: #667eea;
@@ -319,6 +316,51 @@ const BoardCardContent = styled.div<{ view: 'grid' | 'list' }>`
     font-size: 14px;
     margin: 0;
   }
+
+  small {
+    display: block;
+    margin-top: 8px;
+    color: #95a5a6;
+    font-size: 12px;
+    font-family: 'Courier New', monospace;
+  }
+`;
+
+const InviteRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+`;
+
+const CopyInviteButton = styled.button`
+  border: 1px solid #dbe2ea;
+  background: #fff;
+  color: #4a5568;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+
+  &:hover {
+    border-color: #667eea;
+    color: #667eea;
+    background: #f8f9ff;
+  }
+`;
+
+const Notice = styled.div<{ type: 'info' | 'error' }>`
+  margin-top: 12px;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  border: 1px solid ${props => (props.type === 'error' ? '#feb2b2' : '#bee3f8')};
+  background: ${props => (props.type === 'error' ? '#fff5f5' : '#ebf8ff')};
+  color: ${props => (props.type === 'error' ? '#c53030' : '#2b6cb0')};
 `;
 
 const BoardMeta = styled.div<{ view: 'grid' | 'list' }>`
@@ -328,6 +370,74 @@ const BoardMeta = styled.div<{ view: 'grid' | 'list' }>`
   margin-top: ${props => props.view === 'grid' ? '12px' : '0'};
   color: #95a5a6;
   font-size: 12px;
+`;
+
+const TeamBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4a5568;
+  background: #f1f5f9;
+`;
+
+const ProgressSection = styled.div<{ view: 'grid' | 'list' }>`
+  margin-top: ${props => (props.view === 'grid' ? '10px' : '0')};
+  min-width: ${props => (props.view === 'list' ? '180px' : 'auto')};
+`;
+
+const ProgressHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 6px;
+`;
+
+const ProgressTrack = styled.div`
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+`;
+
+const ProgressFill = styled.div<{ progress: number }>`
+  height: 100%;
+  width: ${props => `${props.progress}%`};
+  border-radius: inherit;
+  background: linear-gradient(90deg, #4fd1c7 0%, #38a169 100%);
+  transition: width 0.2s ease;
+`;
+
+const ProgressControls = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 6px;
+`;
+
+const ProgressButton = styled.button`
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid #dbe2ea;
+  background: #fff;
+  color: #667eea;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+
+  &:hover {
+    background: #f8f9ff;
+    border-color: #667eea;
+  }
 `;
 
 const StarButton = styled.button<{ starred?: boolean }>`
@@ -422,15 +532,16 @@ const EmptyState = styled.div`
 `;
 
 export const MyBoardsPage: React.FC = () => {
-  const { user } = useAuth();
-  const { boards, starBoard, unstarBoard, deleteBoard, archiveBoard } = useBoards();
+  const { boards, starBoard, unstarBoard, archiveBoard, setBoardProgress } = useBoards();
   const [currentFilter, setCurrentFilter] = useState<'all' | 'starred' | 'recent'>('all');
   const [currentView, setCurrentView] = useState<'grid' | 'list'>('grid');
+  const [searchTerm, setSearchTerm] = useState('');
   const [showNewBoardModal, setShowNewBoardModal] = useState(false);
   const [showJoinBoardModal, setShowJoinBoardModal] = useState(false);
   const [showDeleteBoardModal, setShowDeleteBoardModal] = useState(false);
   const [boardToDelete, setBoardToDelete] = useState<{ id: string, title: string } | null>(null);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ type: 'info' | 'error'; message: string } | null>(null);
 
   const handleStarBoard = async (e: React.MouseEvent, boardId: string) => {
     e.preventDefault();
@@ -455,7 +566,33 @@ export const MyBoardsPage: React.FC = () => {
     setActiveMenu(null);
   };
 
+  const handleAdjustProgress = async (e: React.MouseEvent, boardId: string, delta: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const board = boards.find((item) => item.id === boardId);
+    if (!board) return;
+
+    const current = typeof board.progress === 'number' ? board.progress : 0;
+    const next = Math.max(0, Math.min(100, current + delta));
+
+    try {
+      await setBoardProgress(boardId, next);
+    } catch {
+      setNotice({ type: 'error', message: 'Could not update board progress.' });
+    }
+  };
+
   const filteredBoards = boards.filter(board => {
+    const query = searchTerm.trim().toLowerCase();
+    const matchesSearch =
+      !query ||
+      board.title.toLowerCase().includes(query) ||
+      (board.description || '').toLowerCase().includes(query) ||
+      (board.inviteCode || '').toLowerCase().includes(query);
+
+    if (!matchesSearch) return false;
+
     switch (currentFilter) {
       case 'starred':
         return board.isStarred;
@@ -469,15 +606,42 @@ export const MyBoardsPage: React.FC = () => {
   });
 
   const getFilterCount = (filter: 'all' | 'starred' | 'recent') => {
+    const inSearch = boards.filter((board) => {
+      const query = searchTerm.trim().toLowerCase();
+      if (!query) return true;
+      return (
+        board.title.toLowerCase().includes(query) ||
+        (board.description || '').toLowerCase().includes(query) ||
+        (board.inviteCode || '').toLowerCase().includes(query)
+      );
+    });
+
     switch (filter) {
       case 'starred':
-        return boards.filter(b => b.isStarred).length;
+        return inSearch.filter(b => b.isStarred).length;
       case 'recent':
         const oneWeekAgo = new Date();
         oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-        return boards.filter(b => b.updatedAt > oneWeekAgo).length;
+        return inSearch.filter(b => b.updatedAt > oneWeekAgo).length;
       default:
-        return boards.length;
+        return inSearch.length;
+    }
+  };
+
+  const handleCopyInviteCode = async (e: React.MouseEvent, inviteCode?: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!inviteCode) {
+      setNotice({ type: 'error', message: 'This board has no invite code yet.' });
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(inviteCode);
+      setNotice({ type: 'info', message: `Invite code ${inviteCode} copied.` });
+    } catch (error) {
+      setNotice({ type: 'error', message: 'Could not copy invite code. Try again.' });
     }
   };
 
@@ -491,7 +655,12 @@ export const MyBoardsPage: React.FC = () => {
           </Logo>
           <SearchBar>
             <Search size={16} />
-            <input type="text" placeholder="Search boards, cards, members..." />
+            <input
+              type="text"
+              placeholder="Search boards..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </SearchBar>
         </HeaderLeft>
         
@@ -520,10 +689,12 @@ export const MyBoardsPage: React.FC = () => {
             <Trello size={20} />
             <span>My Boards</span>
           </SidebarItem>
-          <SidebarItem>
-            <Users size={20} />
-            <span>Teams</span>
-          </SidebarItem>
+          <Link to="/teams" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <SidebarItem>
+              <Users size={20} />
+              <span>Teams</span>
+            </SidebarItem>
+          </Link>
           <Link to="/templates" style={{ textDecoration: 'none', color: 'inherit' }}>
             <SidebarItem>
               <Folder size={20} />
@@ -565,8 +736,9 @@ export const MyBoardsPage: React.FC = () => {
                   onClick={() => {
                     if (boards.length > 0) {
                       handleDeleteBoard(boards[0].id);
+                      setNotice(null);
                     } else {
-                      alert('No boards to delete.');
+                      setNotice({ type: 'info', message: 'No boards available to delete.' });
                     }
                   }}
                   disabled={boards.length === 0}
@@ -586,8 +758,9 @@ export const MyBoardsPage: React.FC = () => {
                                 onClick={() => {
                                   if (boards.length > 0) {
                                     archiveBoard(boards[0].id);
+                                    setNotice(null);
                                   } else {
-                                    alert('No boards to archive.');
+                                    setNotice({ type: 'info', message: 'No boards available to archive.' });
                                   }
                                 }}
                                 disabled={boards.length === 0}
@@ -600,6 +773,7 @@ export const MyBoardsPage: React.FC = () => {
                                 Archive Board
                               </SecondaryButton>
               </QuickActions>
+              {notice && <Notice type={notice.type}>{notice.message}</Notice>}
               
               <FilterButton>
                 <Filter size={16} />
@@ -652,6 +826,8 @@ export const MyBoardsPage: React.FC = () => {
                   ? 'You haven\'t starred any boards yet. Star boards to find them here quickly.'
                   : currentFilter === 'recent'
                   ? 'You haven\'t worked on any boards recently.'
+                  : searchTerm.trim()
+                  ? 'No boards match your search.'
                   : 'You don\'t have any boards yet. Create your first board to get started.'
                 }
               </p>
@@ -663,7 +839,12 @@ export const MyBoardsPage: React.FC = () => {
           ) : (
             <BoardGrid view={currentView}>
               {filteredBoards.map((board) => (
-                <BoardCard key={board.id} to={`/board/${board.id}`} view={currentView}>
+                <BoardCard
+                  key={board.id}
+                  to={`/board/${board.id}`}
+                  view={currentView}
+                  accent={board.color}
+                >
                   <StarButton 
                     starred={board.isStarred}
                     onClick={(e) => handleStarBoard(e, board.id)}
@@ -677,7 +858,38 @@ export const MyBoardsPage: React.FC = () => {
                       {board.title}
                     </h3>
                     <p>{board.description || `${board.members.length} members`}</p>
+                    <TeamBadge>{board.teamName || 'General'}</TeamBadge>
+                    {board.inviteCode && (
+                      <InviteRow>
+                        <small>Invite: {board.inviteCode}</small>
+                        <CopyInviteButton onClick={(e) => handleCopyInviteCode(e, board.inviteCode)}>
+                          <Copy size={12} />
+                          Copy
+                        </CopyInviteButton>
+                      </InviteRow>
+                    )}
                   </BoardCardContent>
+
+                  <ProgressSection view={currentView}>
+                    <ProgressHeader>
+                      <span>
+                        <Gauge size={12} style={{ marginRight: 4 }} />
+                        Progress
+                      </span>
+                      <span>{typeof board.progress === 'number' ? board.progress : 0}%</span>
+                    </ProgressHeader>
+                    <ProgressTrack>
+                      <ProgressFill progress={typeof board.progress === 'number' ? board.progress : 0} />
+                    </ProgressTrack>
+                    <ProgressControls>
+                      <ProgressButton onClick={(e) => handleAdjustProgress(e, board.id, -5)}>
+                        <Minus size={12} />
+                      </ProgressButton>
+                      <ProgressButton onClick={(e) => handleAdjustProgress(e, board.id, 5)}>
+                        <Plus size={12} />
+                      </ProgressButton>
+                    </ProgressControls>
+                  </ProgressSection>
                   
                   <BoardMeta view={currentView}>
                     <span>

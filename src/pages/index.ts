@@ -4,6 +4,8 @@ export * from './RegisterPage';
 export * from './ForgotPasswordPage';
 export * from './ResetPasswordPage';
 export * from './MyBoardsPage';
+export * from './BoardChatPage';
 export * from './SettingsPage';
 export * from './Templates';
 export * from './Archive';
+export * from './TeamsPage';

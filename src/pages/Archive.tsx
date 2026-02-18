@@ -8,11 +8,10 @@ import {
   Archive as ArchiveIcon, 
   Settings,
   Search,
-  Bell
+  Bell,
+  Trash2
 } from 'lucide-react';
 import { useBoards } from '../context/BoardContext';
-import { ArchiveItem } from '../components/ArchiveItem';
-import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { UserDropdown } from '../components/UserDropdown';
 
@@ -182,30 +181,6 @@ const SearchInput = styled.div`
     top: 50%;
     transform: translateY(-50%);
     color: #95a5a6;
-  }
-`;
-
-const FilterButtonGroup = styled.div`
-  display: flex;
-  gap: 8px;
-  background-color: #f8f9fa;
-  padding: 4px;
-  border-radius: 8px;
-`;
-
-const FilterButton = styled.button<{ active?: boolean }>`
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  background: ${props => props.active ? '#667eea' : 'transparent'};
-  color: ${props => props.active ? 'white' : '#7f8c8d'};
-  transition: all 0.2s;
-
-  &:hover {
-    background: ${props => props.active ? '#667eea' : '#e9ecef'};
   }
 `;
 
@@ -411,7 +386,12 @@ export const Archive: React.FC = () => {
           </Logo>
           <SearchBar>
             <Search size={16} />
-            <input type="text" placeholder="Search boards, cards, members..." />
+            <input
+              type="text"
+              placeholder="Search archived boards..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </SearchBar>
         </HeaderLeft>
         
@@ -442,10 +422,12 @@ export const Archive: React.FC = () => {
               <span>My Boards</span>
             </SidebarItem>
           </Link>
-          <SidebarItem>
-            <Users size={20} />
-            <span>Teams</span>
-          </SidebarItem>
+          <Link to="/teams" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <SidebarItem>
+              <Users size={20} />
+              <span>Teams</span>
+            </SidebarItem>
+          </Link>
           <Link to="/templates" style={{ textDecoration: 'none', color: 'inherit' }}>
             <SidebarItem>
               <Folder size={20} />
@@ -528,7 +510,7 @@ export const Archive: React.FC = () => {
                       Restore Board
                     </RestoreButton>
                     <DeleteButton onClick={() => handleDeleteBoard(board.id)}>
-                      <Settings size={14} />
+                      <Trash2 size={14} />
                       Delete
                     </DeleteButton>
                   </ActionButtons>

@@ -188,6 +188,7 @@ const SuccessMessage = styled.div`
 export const ForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
+  const [resetUrl, setResetUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
 
@@ -199,7 +200,8 @@ export const ForgotPasswordPage: React.FC = () => {
     setIsLoading(true);
     
     try {
-      await requestPasswordReset(email);
+      const result = await requestPasswordReset(email);
+      setResetUrl(result.resetUrl || '');
       setEmailSent(true);
     } catch (err) {
       setError('Error al enviar el email. Verifica que la dirección sea correcta.');
@@ -224,6 +226,14 @@ export const ForgotPasswordPage: React.FC = () => {
               <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#666' }}>
                 Si no encuentras el email, revisa tu carpeta de spam.
               </p>
+              {resetUrl && (
+                <p style={{ margin: '12px 0 0 0', fontSize: '13px' }}>
+                  Entorno de desarrollo: {' '}
+                  <a href={resetUrl} style={{ color: '#667eea' }}>
+                    abrir enlace de restablecimiento
+                  </a>
+                </p>
+              )}
             </div>
           </SuccessMessage>
           

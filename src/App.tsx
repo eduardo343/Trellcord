@@ -7,11 +7,13 @@ import {
   RegisterPage,
   DashboardPage,
   MyBoardsPage,
+  BoardChatPage,
   SettingsPage,
   ForgotPasswordPage,
   ResetPasswordPage,
   Templates,
-  Archive
+  Archive,
+  TeamsPage
 } from './pages';
 import './App.css';
 
@@ -109,6 +111,22 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <MyBoardsPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route
+                path="/board/:id"
+                element={
+                  <ProtectedRoute>
+                    <BoardChatPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route 
+                path="/teams" 
+                element={
+                  <ProtectedRoute>
+                    <TeamsPage />
                   </ProtectedRoute>
                 } 
               />

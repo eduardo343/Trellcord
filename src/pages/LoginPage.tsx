@@ -313,7 +313,8 @@ export const LoginPage: React.FC = () => {
       await login(email, password);
       navigate('/dashboard');
     } catch (err) {
-      setError('Invalid email or password. Please try again.');
+      const message = err instanceof Error ? err.message : 'Invalid email or password. Please try again.';
+      setError(message.includes('Failed to fetch') ? 'No hay conexión con el backend API.' : message);
     }
   };
 

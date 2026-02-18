@@ -14,7 +14,6 @@ import {
 import { useTemplates, Template } from '../hooks/useTemplates';
 import { TemplateCard } from '../components/TemplateCard';
 import { useBoards } from '../context/BoardContext';
-import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { UserDropdown } from '../components/UserDropdown';
 
@@ -313,10 +312,12 @@ export const Templates: React.FC = () => {
               <span>My Boards</span>
             </SidebarItem>
           </Link>
-          <SidebarItem>
-            <Users size={20} />
-            <span>Teams</span>
-          </SidebarItem>
+          <Link to="/teams" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <SidebarItem>
+              <Users size={20} />
+              <span>Teams</span>
+            </SidebarItem>
+          </Link>
           <SidebarItem active>
             <Folder size={20} />
             <span>Templates</span>

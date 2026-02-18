@@ -138,7 +138,8 @@ export const RegisterPage: React.FC = () => {
       await register(name, email, password);
       navigate('/dashboard');
     } catch (err) {
-      setError('Failed to register. Please try again.');
+      const message = err instanceof Error ? err.message : 'Failed to register. Please try again.';
+      setError(message.includes('Failed to fetch') ? 'No hay conexión con el backend API.' : message);
     }
   };
 
@@ -201,4 +202,3 @@ export const RegisterPage: React.FC = () => {
     </RegisterContainer>
   );
 };
-

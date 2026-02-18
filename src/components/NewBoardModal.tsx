@@ -142,6 +142,21 @@ const TextArea = styled.textarea`
   }
 `;
 
+const Select = styled.select`
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e1e8ed;
+  border-radius: 8px;
+  font-size: 16px;
+  background: white;
+  transition: border-color 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: #667eea;
+  }
+`;
+
 const ButtonGroup = styled.div`
   display: flex;
   gap: 12px;
@@ -195,6 +210,24 @@ const ColorPalette = styled.div`
   margin-top: 8px;
 `;
 
+const ProgressHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+
+  span {
+    font-size: 13px;
+    font-weight: 600;
+    color: #667eea;
+  }
+`;
+
+const ProgressSlider = styled.input`
+  width: 100%;
+  accent-color: #667eea;
+`;
+
 const ColorOption = styled.button<{ color: string; selected?: boolean }>`
   width: 40px;
   height: 40px;
@@ -227,10 +260,14 @@ const backgroundColors = [
   { name: 'Teal', value: 'linear-gradient(135deg, #4fd1c7 0%, #38b2ac 100%)' },
 ];
 
+const teamOptions = ['General', 'Design', 'Product', 'Engineering', 'Marketing'];
+
 export const NewBoardModal: React.FC<NewBoardModalProps> = ({ isOpen, onClose }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selectedColor, setSelectedColor] = useState(backgroundColors[0].value);
+  const [selectedTeam, setSelectedTeam] = useState(teamOptions[0]);
+  const [initialProgress, setInitialProgress] = useState(0);
   const { createBoard, isLoading } = useBoards();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -239,7 +276,11 @@ export const NewBoardModal: React.FC<NewBoardModalProps> = ({ isOpen, onClose })
     if (!title.trim()) return;
 
     try {
-      await createBoard(title.trim(), description.trim() || undefined);
+      await createBoard(title.trim(), description.trim() || undefined, {
+        color: selectedColor,
+        teamName: selectedTeam,
+        progress: initialProgress
+      });
       handleClose();
     } catch (error) {
       console.error('Error creating board:', error);
@@ -250,6 +291,8 @@ export const NewBoardModal: React.FC<NewBoardModalProps> = ({ isOpen, onClose })
     setTitle('');
     setDescription('');
     setSelectedColor(backgroundColors[0].value);
+    setSelectedTeam(teamOptions[0]);
+    setInitialProgress(0);
     onClose();
   };
 
@@ -299,6 +342,21 @@ export const NewBoardModal: React.FC<NewBoardModalProps> = ({ isOpen, onClose })
             </FormGroup>
 
             <FormGroup>
+              <label htmlFor="team">Team</label>
+              <Select
+                id="team"
+                value={selectedTeam}
+                onChange={(e) => setSelectedTeam(e.target.value)}
+              >
+                {teamOptions.map((teamName) => (
+                  <option key={teamName} value={teamName}>
+                    {teamName}
+                  </option>
+                ))}
+              </Select>
+            </FormGroup>
+
+            <FormGroup>
               <label>Background color</label>
               <ColorPalette>
                 {backgroundColors.map((color) => (
@@ -312,6 +370,22 @@ export const NewBoardModal: React.FC<NewBoardModalProps> = ({ isOpen, onClose })
                   />
                 ))}
               </ColorPalette>
+            </FormGroup>
+
+            <FormGroup>
+              <label htmlFor="progress">Initial progress</label>
+              <ProgressHeader>
+                <span>{initialProgress}%</span>
+              </ProgressHeader>
+              <ProgressSlider
+                id="progress"
+                type="range"
+                min={0}
+                max={100}
+                step={5}
+                value={initialProgress}
+                onChange={(e) => setInitialProgress(Number(e.target.value))}
+              />
             </FormGroup>
 
             <ButtonGroup>

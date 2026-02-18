@@ -1,8 +1,14 @@
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
-import { Board, BoardState, User, ArchivedBoard } from '../types';
+import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback } from 'react';
+import { Board, BoardState, ArchivedBoard } from '../types';
+import { boardsApi, ApiBoard } from '../services/api';
+import { useAuth } from './AuthContext';
 
 interface BoardContextType extends BoardState {
-  createBoard: (title: string, description?: string) => Promise<void>;
+  createBoard: (
+    title: string,
+    description?: string,
+    options?: { color?: string; progress?: number; teamName?: string }
+  ) => Promise<void>;
   joinBoard: (inviteCode: string) => Promise<void>;
   saveBoard: (board: Board) => Promise<void>;
   deleteBoard: (boardId: string) => Promise<void>;
@@ -11,94 +17,27 @@ interface BoardContextType extends BoardState {
   restoreBoard: (archivedBoardId: string) => Promise<void>;
   starBoard: (boardId: string) => Promise<void>;
   unstarBoard: (boardId: string) => Promise<void>;
+  setBoardProgress: (boardId: string, progress: number) => Promise<void>;
 }
 
 const BoardContext = createContext<BoardContextType | undefined>(undefined);
 
-type BoardAction = 
+type BoardAction =
   | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_BOARDS'; payload: Board[] }
-  | { type: 'ADD_BOARD'; payload: Board }
-  | { type: 'UPDATE_BOARD'; payload: Board }
-  | { type: 'DELETE_BOARD'; payload: string }
-  | { type: 'DELETE_ARCHIVED_BOARD'; payload: string }
-  | { type: 'ARCHIVE_BOARD'; payload: string }
-  | { type: 'ADD_ARCHIVED_BOARD'; payload: ArchivedBoard }
-  | { type: 'RESTORE_BOARD'; payload: string }
+  | { type: 'SET_DATA'; payload: { boards: Board[]; archivedBoards: ArchivedBoard[] } }
   | { type: 'SET_CURRENT_BOARD'; payload: Board | null };
 
 const boardReducer = (state: BoardState, action: BoardAction): BoardState => {
   switch (action.type) {
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
-    case 'SET_BOARDS':
-      return { ...state, boards: action.payload, isLoading: false };
-    case 'ADD_BOARD':
-      return { ...state, boards: [...state.boards, action.payload], isLoading: false };
-    case 'UPDATE_BOARD':
+    case 'SET_DATA':
       return {
         ...state,
-        boards: state.boards.map(board => 
-          board.id === action.payload.id ? action.payload : board
-        ),
-        currentBoard: state.currentBoard?.id === action.payload.id 
-          ? action.payload 
-          : state.currentBoard,
+        boards: action.payload.boards,
+        archivedBoards: action.payload.archivedBoards,
         isLoading: false
       };
-    case 'DELETE_BOARD':
-      console.log('🔧 Reducer: DELETE_BOARD action received');
-      console.log('🎯 Reducer: Target board ID:', action.payload);
-      console.log('📋 Reducer: Current boards:', state.boards.map(b => ({ id: b.id, title: b.title })));
-      
-      const filteredBoards = state.boards.filter(board => board.id !== action.payload);
-      console.log('📋 Reducer: Boards after filter:', filteredBoards.map(b => ({ id: b.id, title: b.title })));
-      
-      return {
-        ...state,
-        boards: filteredBoards,
-        currentBoard: state.currentBoard?.id === action.payload 
-          ? null 
-          : state.currentBoard,
-        isLoading: false
-      };
-    case 'ARCHIVE_BOARD':
-      return {
-        ...state,
-        boards: state.boards.filter(board => board.id !== action.payload),
-        currentBoard: state.currentBoard?.id === action.payload ? null : state.currentBoard,
-        isLoading: false
-      };
-    case 'ADD_ARCHIVED_BOARD':
-      return {
-        ...state,
-        archivedBoards: [...state.archivedBoards, action.payload],
-        isLoading: false
-      };
-    case 'DELETE_ARCHIVED_BOARD':
-      console.log('🗑️ Reducer: DELETE_ARCHIVED_BOARD action received');
-      console.log('🎯 Reducer: Target archived board ID:', action.payload);
-      console.log('📦 Reducer: Current archived boards:', state.archivedBoards.map(b => ({ id: b.id, title: b.title })));
-      
-      const filteredArchivedBoards = state.archivedBoards.filter(board => board.id !== action.payload);
-      console.log('📦 Reducer: Archived boards after filter:', filteredArchivedBoards.map(b => ({ id: b.id, title: b.title })));
-      
-      return {
-        ...state,
-        archivedBoards: filteredArchivedBoards,
-        isLoading: false
-      };
-    case 'RESTORE_BOARD':
-      const archivedBoard = state.archivedBoards.find(ab => ab.id === action.payload);
-      if (archivedBoard) {
-        return {
-          ...state,
-          boards: [...state.boards, archivedBoard.originalBoard],
-          archivedBoards: state.archivedBoards.filter(ab => ab.id !== action.payload),
-          isLoading: false
-        };
-      }
-      return { ...state, isLoading: false };
     case 'SET_CURRENT_BOARD':
       return { ...state, currentBoard: action.payload };
     default:
@@ -110,135 +49,91 @@ interface BoardProviderProps {
   children: ReactNode;
 }
 
+const mapApiBoardToBoard = (board: ApiBoard): Board => ({
+  id: String(board.id),
+  title: board.title,
+  description: board.description || '',
+  isStarred: !!board.isStarred,
+  color: board.color || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  progress: typeof board.progress === 'number' ? board.progress : 0,
+  teamName: board.teamName || 'General',
+  inviteCode: board.inviteCode,
+  members: board.members || [],
+  lists: board.lists || [],
+  createdAt: new Date(board.createdAt),
+  updatedAt: new Date(board.updatedAt)
+});
+
+const mapApiBoardToArchivedBoard = (board: ApiBoard): ArchivedBoard => {
+  const originalBoard = mapApiBoardToBoard(board);
+  return {
+    id: originalBoard.id,
+    title: originalBoard.title,
+    description: originalBoard.description,
+    members: originalBoard.members,
+    archivedAt: originalBoard.updatedAt,
+    originalBoard
+  };
+};
+
 export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [state, dispatch] = useReducer(boardReducer, {
-    boards: [
-      {
-        id: '1',
-        title: 'Marketing Campaign',
-        description: 'Plan and execute marketing campaigns',
-        isStarred: true,
-        members: [
-          { id: '1', name: 'Alan Ugarte', email: 'alan@example.com', isOnline: true },
-          { id: '2', name: 'Sarah Wilson', email: 'sarah@example.com', isOnline: false },
-          { id: '3', name: 'Mike Johnson', email: 'mike@example.com', isOnline: true }
-        ],
-        lists: [],
-        createdAt: new Date('2024-01-15'),
-        updatedAt: new Date('2024-01-20')
-      },
-      {
-        id: '2',
-        title: 'Dev Tasks',
-        description: 'Development tasks and features',
-        isStarred: false,
-        members: [
-          { id: '1', name: 'Alan Ugarte', email: 'alan@example.com', isOnline: true },
-          { id: '4', name: 'Alex Rodriguez', email: 'alex@example.com', isOnline: true },
-          { id: '5', name: 'Emma Davis', email: 'emma@example.com', isOnline: false },
-          { id: '6', name: 'James Brown', email: 'james@example.com', isOnline: true }
-        ],
-        lists: [],
-        createdAt: new Date('2024-01-10'),
-        updatedAt: new Date('2024-01-22')
-      },
-      {
-        id: '3',
-        title: 'Design System',
-        description: 'Design components and guidelines',
-        isStarred: true,
-        members: [
-          { id: '1', name: 'Alan Ugarte', email: 'alan@example.com', isOnline: true },
-          { id: '2', name: 'Sarah Wilson', email: 'sarah@example.com', isOnline: false }
-        ],
-        lists: [],
-        createdAt: new Date('2024-01-12'),
-        updatedAt: new Date('2024-01-21')
-      },
-      {
-        id: '4',
-        title: 'Personal Tasks',
-        description: 'My personal todo list',
-        isStarred: false,
-        members: [
-          { id: '1', name: 'Alan Ugarte', email: 'alan@example.com', isOnline: true }
-        ],
-        lists: [],
-        createdAt: new Date('2024-01-18'),
-        updatedAt: new Date('2024-01-18')
-      }
-    ],
-    archivedBoards: [
-      {
-        id: 'archived-1',
-        title: 'Old Project Board',
-        description: 'A completed project that was archived',
-        members: [
-          { id: '1', name: 'Alan Ugarte', email: 'alan@example.com', isOnline: true },
-          { id: '2', name: 'Sarah Wilson', email: 'sarah@example.com', isOnline: false }
-        ],
-        archivedAt: new Date('2024-01-10'),
-        originalBoard: {
-          id: 'archived-1',
-          title: 'Old Project Board',
-          description: 'A completed project that was archived',
-          isStarred: false,
-          members: [
-            { id: '1', name: 'Alan Ugarte', email: 'alan@example.com', isOnline: true },
-            { id: '2', name: 'Sarah Wilson', email: 'sarah@example.com', isOnline: false }
-          ],
-          lists: [],
-          createdAt: new Date('2023-12-01'),
-          updatedAt: new Date('2024-01-10')
-        }
-      },
-      {
-        id: 'archived-2',
-        title: 'Legacy Feature Planning',
-        description: 'Old feature planning board',
-        members: [
-          { id: '1', name: 'Alan Ugarte', email: 'alan@example.com', isOnline: true }
-        ],
-        archivedAt: new Date('2024-01-05'),
-        originalBoard: {
-          id: 'archived-2',
-          title: 'Legacy Feature Planning',
-          description: 'Old feature planning board',
-          isStarred: false,
-          members: [
-            { id: '1', name: 'Alan Ugarte', email: 'alan@example.com', isOnline: true }
-          ],
-          lists: [],
-          createdAt: new Date('2023-11-15'),
-          updatedAt: new Date('2024-01-05')
-        }
-      }
-    ],
+    boards: [],
+    archivedBoards: [],
     currentBoard: null,
-    isLoading: false,
+    isLoading: false
   });
 
-  const createBoard = async (title: string, description?: string): Promise<void> => {
+  const loadBoards = useCallback(async () => {
+    const token = localStorage.getItem('trellcord_token');
+
+    if (!token) {
+      dispatch({ type: 'SET_DATA', payload: { boards: [], archivedBoards: [] } });
+      return;
+    }
+
     dispatch({ type: 'SET_LOADING', payload: true });
-    
+
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const newBoard: Board = {
-        id: Date.now().toString(),
+      const data = await boardsApi.list();
+      const boards = data.filter(board => !board.archived).map(mapApiBoardToBoard);
+      const archivedBoards = data.filter(board => board.archived).map(mapApiBoardToArchivedBoard);
+      dispatch({ type: 'SET_DATA', payload: { boards, archivedBoards } });
+    } catch (error) {
+      dispatch({ type: 'SET_LOADING', payload: false });
+      throw error;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isAuthLoading) return;
+
+    if (!isAuthenticated) {
+      dispatch({ type: 'SET_DATA', payload: { boards: [], archivedBoards: [] } });
+      return;
+    }
+
+    loadBoards().catch(() => {
+      // Ignore initialization errors here; pages can surface action errors.
+    });
+  }, [isAuthenticated, isAuthLoading, loadBoards]);
+
+  const createBoard = async (
+    title: string,
+    description?: string,
+    options?: { color?: string; progress?: number; teamName?: string }
+  ): Promise<void> => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      await boardsApi.create({
         title,
-        description: description || '',
-        isStarred: false,
-        members: [
-          { id: '1', name: 'Alan Ugarte', email: 'alan@example.com', isOnline: true }
-        ],
-        lists: [],
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      
-      dispatch({ type: 'ADD_BOARD', payload: newBoard });
+        description,
+        color: options?.color,
+        progress: options?.progress,
+        teamName: options?.teamName
+      });
+      await loadBoards();
     } catch (error) {
       dispatch({ type: 'SET_LOADING', payload: false });
       throw error;
@@ -247,27 +142,9 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
 
   const joinBoard = async (inviteCode: string): Promise<void> => {
     dispatch({ type: 'SET_LOADING', payload: true });
-    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock board join - in real app, would fetch board by invite code
-      const joinedBoard: Board = {
-        id: Date.now().toString(),
-        title: `Joined Board (${inviteCode})`,
-        description: 'A board you joined via invite code',
-        isStarred: false,
-        members: [
-          { id: '1', name: 'Alan Ugarte', email: 'alan@example.com', isOnline: true },
-          { id: '2', name: 'Board Owner', email: 'owner@example.com', isOnline: false }
-        ],
-        lists: [],
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      
-      dispatch({ type: 'ADD_BOARD', payload: joinedBoard });
+      await boardsApi.join(inviteCode);
+      await loadBoards();
     } catch (error) {
       dispatch({ type: 'SET_LOADING', payload: false });
       throw error;
@@ -276,17 +153,16 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
 
   const saveBoard = async (board: Board): Promise<void> => {
     dispatch({ type: 'SET_LOADING', payload: true });
-    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const updatedBoard = {
-        ...board,
-        updatedAt: new Date()
-      };
-      
-      dispatch({ type: 'UPDATE_BOARD', payload: updatedBoard });
+      await boardsApi.update(board.id, {
+        title: board.title,
+        description: board.description,
+        isStarred: board.isStarred,
+        color: board.color,
+        progress: board.progress,
+        teamName: board.teamName
+      });
+      await loadBoards();
     } catch (error) {
       dispatch({ type: 'SET_LOADING', payload: false });
       throw error;
@@ -294,107 +170,71 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
   };
 
   const deleteBoard = async (boardId: string): Promise<void> => {
-    console.log('🔄 BoardContext: deleteBoard called with ID:', boardId);
-    console.log('📋 BoardContext: Current boards before delete:', state.boards.map(b => ({ id: b.id, title: b.title })));
-    
     dispatch({ type: 'SET_LOADING', payload: true });
-    console.log('⏳ BoardContext: Set loading to true');
-    
     try {
-      // Simulate API call
-      console.log('🌐 BoardContext: Simulating API call...');
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      console.log('🚀 BoardContext: Dispatching DELETE_BOARD action');
-      dispatch({ type: 'DELETE_BOARD', payload: boardId });
-      console.log('✅ BoardContext: DELETE_BOARD action dispatched');
+      await boardsApi.delete(boardId);
+      await loadBoards();
     } catch (error) {
-      console.error('❌ BoardContext: Error in deleteBoard:', error);
       dispatch({ type: 'SET_LOADING', payload: false });
       throw error;
     }
   };
 
-  const starBoard = async (boardId: string): Promise<void> => {
-    const board = state.boards.find(b => b.id === boardId);
-    if (board) {
-      const updatedBoard = { ...board, isStarred: true, updatedAt: new Date() };
-      await saveBoard(updatedBoard);
-    }
-  };
-
-  const unstarBoard = async (boardId: string): Promise<void> => {
-    const board = state.boards.find(b => b.id === boardId);
-    if (board) {
-      const updatedBoard = { ...board, isStarred: false, updatedAt: new Date() };
-      await saveBoard(updatedBoard);
-    }
-  };
-
   const archiveBoard = async (boardId: string): Promise<void> => {
-    console.log('📦 BoardContext: archiveBoard called with ID:', boardId);
     dispatch({ type: 'SET_LOADING', payload: true });
-    
     try {
-      const boardToArchive = state.boards.find(board => board.id === boardId);
-      if (boardToArchive) {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        const archivedBoard: ArchivedBoard = {
-          id: boardToArchive.id,
-          title: boardToArchive.title,
-          description: boardToArchive.description,
-          members: boardToArchive.members,
-          archivedAt: new Date(),
-          originalBoard: boardToArchive
-        };
-        
-        dispatch({ type: 'ARCHIVE_BOARD', payload: boardId });
-        dispatch({ type: 'ADD_ARCHIVED_BOARD', payload: archivedBoard });
-        console.log('✅ BoardContext: Board archived successfully');
-      }
+      await boardsApi.update(boardId, { archived: true });
+      await loadBoards();
     } catch (error) {
-      console.error('❌ BoardContext: Error archiving board:', error);
       dispatch({ type: 'SET_LOADING', payload: false });
       throw error;
     }
   };
 
   const restoreBoard = async (archivedBoardId: string): Promise<void> => {
-    console.log('🔄 BoardContext: restoreBoard called with ID:', archivedBoardId);
     dispatch({ type: 'SET_LOADING', payload: true });
-    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      dispatch({ type: 'RESTORE_BOARD', payload: archivedBoardId });
-      console.log('✅ BoardContext: Board restored successfully');
+      await boardsApi.update(archivedBoardId, { archived: false });
+      await loadBoards();
     } catch (error) {
-      console.error('❌ BoardContext: Error restoring board:', error);
       dispatch({ type: 'SET_LOADING', payload: false });
       throw error;
     }
   };
 
   const deleteArchivedBoard = async (archivedBoardId: string): Promise<void> => {
-    console.log('🗑️ BoardContext: deleteArchivedBoard called with ID:', archivedBoardId);
-    console.log('📦 BoardContext: Current archived boards before delete:', state.archivedBoards.map(b => ({ id: b.id, title: b.title })));
-    
+    await deleteBoard(archivedBoardId);
+  };
+
+  const starBoard = async (boardId: string): Promise<void> => {
     dispatch({ type: 'SET_LOADING', payload: true });
-    console.log('⏳ BoardContext: Set loading to true');
-    
     try {
-      // Simulate API call
-      console.log('🌐 BoardContext: Simulating API call...');
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      console.log('🚀 BoardContext: Dispatching DELETE_ARCHIVED_BOARD action');
-      dispatch({ type: 'DELETE_ARCHIVED_BOARD', payload: archivedBoardId });
-      console.log('✅ BoardContext: DELETE_ARCHIVED_BOARD action dispatched');
+      await boardsApi.update(boardId, { isStarred: true });
+      await loadBoards();
     } catch (error) {
-      console.error('❌ BoardContext: Error in deleteArchivedBoard:', error);
+      dispatch({ type: 'SET_LOADING', payload: false });
+      throw error;
+    }
+  };
+
+  const unstarBoard = async (boardId: string): Promise<void> => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      await boardsApi.update(boardId, { isStarred: false });
+      await loadBoards();
+    } catch (error) {
+      dispatch({ type: 'SET_LOADING', payload: false });
+      throw error;
+    }
+  };
+
+  const setBoardProgress = async (boardId: string, progress: number): Promise<void> => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      const normalizedProgress = Math.max(0, Math.min(100, Math.round(progress)));
+      await boardsApi.update(boardId, { progress: normalizedProgress });
+      await loadBoards();
+    } catch (error) {
       dispatch({ type: 'SET_LOADING', payload: false });
       throw error;
     }
@@ -411,6 +251,7 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     restoreBoard,
     starBoard,
     unstarBoard,
+    setBoardProgress
   };
 
   return <BoardContext.Provider value={value}>{children}</BoardContext.Provider>;

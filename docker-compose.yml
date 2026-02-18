@@ -1,0 +1,66 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: trellcord_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: backend_development
+    ports:
+      - "5432:5432"
+    volumes:
+      - trellcord_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d backend_development"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: trellcord_backend
+    depends_on:
+      db:
+        condition: service_healthy
+    working_dir: /app
+    environment:
+      RAILS_ENV: development
+      PORT: 3001
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: backend_development
+      POSTGRES_TEST_DB: backend_test
+      FRONTEND_ORIGIN: http://localhost:3000
+      JWT_SECRET: dev_jwt_secret_change_me
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./backend:/app
+      - trellcord_bundle:/usr/local/bundle
+    command: ["/app/bin/dev-api"]
+
+  frontend:
+    image: node:20-alpine
+    container_name: trellcord_frontend
+    depends_on:
+      - backend
+    working_dir: /workspace
+    environment:
+      REACT_APP_API_URL: http://localhost:3001/api/v1
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/workspace
+      - trellcord_node_modules:/workspace/node_modules
+    command: ["sh", "-lc", "npm ci --no-audit --no-fund && npm start"]
+
+volumes:
+  trellcord_db_data:
+  trellcord_bundle:
+  trellcord_node_modules:

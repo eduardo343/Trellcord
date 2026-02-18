@@ -1,10 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { 
-  Home, 
   Settings, 
   User,
-  Mail,
   Lock,
   Bell,
   Globe,
@@ -18,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
+import { settingsApi } from '../services/api';
 
 const SettingsContainer = styled.div`
   min-height: 100vh;
@@ -275,8 +274,18 @@ const DangerZone = styled.div`
   }
 `;
 
+const StatusMessage = styled.div<{ type: 'success' | 'error' }>`
+  background: ${props => (props.type === 'success' ? '#f0fff4' : '#fff5f5')};
+  border: 1px solid ${props => (props.type === 'success' ? '#9ae6b4' : '#feb2b2')};
+  color: ${props => (props.type === 'success' ? '#2f855a' : '#c53030')};
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  font-size: 14px;
+`;
+
 export const SettingsPage: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, updateProfile, changePassword } = useAuth();
   const navigate = useNavigate();
   
   // Estados para el formulario
@@ -308,7 +317,40 @@ export const SettingsPage: React.FC = () => {
     confirm: false
   });
   
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+  const [isSavingPreferences, setIsSavingPreferences] = useState(false);
+  const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      name: user?.name || '',
+      email: user?.email || ''
+    }));
+  }, [user?.name, user?.email]);
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await settingsApi.get();
+        setNotifications({
+          emailNotifications: settings.emailNotifications,
+          pushNotifications: settings.pushNotifications,
+          boardUpdates: settings.boardUpdates,
+          mentions: settings.mentions
+        });
+        setPrivacy({
+          profileVisibility: settings.profileVisibility,
+          activityVisibility: settings.activityVisibility
+        });
+      } catch (error) {
+        setStatus({ type: 'error', message: error instanceof Error ? error.message : 'Failed to load settings' });
+      }
+    };
+
+    loadSettings();
+  }, []);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -339,44 +381,68 @@ export const SettingsPage: React.FC = () => {
   };
 
   const handleSaveProfile = async () => {
-    setIsSaving(true);
+    setStatus(null);
+    setIsSavingProfile(true);
     try {
-      // Aquí implementarías la lógica para guardar el perfil
-      console.log('Guardando perfil:', formData);
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simular llamada API
-      // Mostrar mensaje de éxito
+      await updateProfile({
+        name: formData.name.trim(),
+        email: formData.email.trim()
+      });
+      setStatus({ type: 'success', message: 'Profile updated successfully' });
     } catch (error) {
-      console.error('Error al guardar perfil:', error);
-      // Mostrar mensaje de error
+      setStatus({ type: 'error', message: error instanceof Error ? error.message : 'Failed to update profile' });
     } finally {
-      setIsSaving(false);
+      setIsSavingProfile(false);
     }
   };
 
   const handleChangePassword = async () => {
+    setStatus(null);
+
     if (formData.newPassword !== formData.confirmPassword) {
-      alert('Las contraseñas no coinciden');
+      setStatus({ type: 'error', message: 'Passwords do not match' });
       return;
     }
-    
-    setIsSaving(true);
+
+    if (!formData.currentPassword || !formData.newPassword) {
+      setStatus({ type: 'error', message: 'Current and new password are required' });
+      return;
+    }
+
+    setIsSavingPassword(true);
     try {
-      // Aquí implementarías la lógica para cambiar la contraseña
-      console.log('Cambiando contraseña');
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simular llamada API
-      // Limpiar campos de contraseña
+      await changePassword(formData.currentPassword, formData.newPassword);
       setFormData(prev => ({
         ...prev,
         currentPassword: '',
         newPassword: '',
         confirmPassword: ''
       }));
-      // Mostrar mensaje de éxito
+      setStatus({ type: 'success', message: 'Password updated successfully' });
     } catch (error) {
-      console.error('Error al cambiar contraseña:', error);
-      // Mostrar mensaje de error
+      setStatus({ type: 'error', message: error instanceof Error ? error.message : 'Failed to update password' });
     } finally {
-      setIsSaving(false);
+      setIsSavingPassword(false);
+    }
+  };
+
+  const handleSavePreferences = async () => {
+    setStatus(null);
+    setIsSavingPreferences(true);
+    try {
+      await settingsApi.update({
+        emailNotifications: notifications.emailNotifications,
+        pushNotifications: notifications.pushNotifications,
+        boardUpdates: notifications.boardUpdates,
+        mentions: notifications.mentions,
+        profileVisibility: privacy.profileVisibility,
+        activityVisibility: privacy.activityVisibility
+      });
+      setStatus({ type: 'success', message: 'Preferences saved successfully' });
+    } catch (error) {
+      setStatus({ type: 'error', message: error instanceof Error ? error.message : 'Failed to save preferences' });
+    } finally {
+      setIsSavingPreferences(false);
     }
   };
 
@@ -399,6 +465,8 @@ export const SettingsPage: React.FC = () => {
       </Header>
 
       <MainContent>
+        {status && <StatusMessage type={status.type}>{status.message}</StatusMessage>}
+
         {/* Profile Settings */}
         <SettingsSection>
           <SectionHeader>
@@ -430,9 +498,9 @@ export const SettingsPage: React.FC = () => {
               />
             </FormGroup>
             <ButtonGroup>
-              <Button onClick={handleSaveProfile} disabled={isSaving}>
+              <Button onClick={handleSaveProfile} disabled={isSavingProfile}>
                 <Save size={16} />
-                {isSaving ? 'Saving...' : 'Save Profile'}
+                {isSavingProfile ? 'Saving...' : 'Save Profile'}
               </Button>
             </ButtonGroup>
           </SectionContent>
@@ -503,9 +571,9 @@ export const SettingsPage: React.FC = () => {
               </PasswordInputGroup>
             </FormGroup>
             <ButtonGroup>
-              <Button onClick={handleChangePassword} disabled={isSaving}>
+              <Button onClick={handleChangePassword} disabled={isSavingPassword}>
                 <Lock size={16} />
-                {isSaving ? 'Updating...' : 'Update Password'}
+                {isSavingPassword ? 'Updating...' : 'Update Password'}
               </Button>
             </ButtonGroup>
           </SectionContent>
@@ -561,6 +629,12 @@ export const SettingsPage: React.FC = () => {
                 onClick={() => handleNotificationToggle('mentions')}
               />
             </SwitchGroup>
+            <ButtonGroup>
+              <Button onClick={handleSavePreferences} disabled={isSavingPreferences}>
+                <Save size={16} />
+                {isSavingPreferences ? 'Saving...' : 'Save Notification Settings'}
+              </Button>
+            </ButtonGroup>
           </SectionContent>
         </SettingsSection>
 
@@ -594,6 +668,12 @@ export const SettingsPage: React.FC = () => {
                 onClick={() => handlePrivacyToggle('activityVisibility')}
               />
             </SwitchGroup>
+            <ButtonGroup>
+              <Button onClick={handleSavePreferences} disabled={isSavingPreferences}>
+                <Save size={16} />
+                {isSavingPreferences ? 'Saving...' : 'Save Privacy Settings'}
+              </Button>
+            </ButtonGroup>
           </SectionContent>
         </SettingsSection>
 

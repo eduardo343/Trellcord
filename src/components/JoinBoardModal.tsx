@@ -195,46 +195,6 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' }>`
   `}
 `;
 
-const ExampleCodes = styled.div`
-  margin-top: 12px;
-  padding: 12px;
-  background: #f8f9fa;
-  border-radius: 6px;
-  border-left: 4px solid #667eea;
-
-  h4 {
-    font-size: 12px;
-    font-weight: 600;
-    color: #2c3e50;
-    margin: 0 0 8px 0;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  div {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-`;
-
-const ExampleCode = styled.button`
-  background: white;
-  border: 1px solid #e1e8ed;
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 12px;
-  font-family: 'Courier New', monospace;
-  color: #667eea;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #f8f9ff;
-    border-color: #667eea;
-  }
-`;
-
 const ErrorMessage = styled.div`
   color: #e74c3c;
   font-size: 14px;
@@ -268,7 +228,8 @@ export const JoinBoardModal: React.FC<JoinBoardModalProps> = ({ isOpen, onClose 
       await joinBoard(inviteCode.trim().toUpperCase());
       handleClose();
     } catch (error) {
-      setError('Invalid invite code or board not found. Please try again.');
+      const message = error instanceof Error ? error.message : 'Unable to join board';
+      setError(message);
       console.error('Error joining board:', error);
     }
   };
@@ -284,13 +245,6 @@ export const JoinBoardModal: React.FC<JoinBoardModalProps> = ({ isOpen, onClose 
       handleClose();
     }
   };
-
-  const handleExampleClick = (code: string) => {
-    setInviteCode(code);
-    setError('');
-  };
-
-  const exampleCodes = ['ABC123', 'XYZ789', 'DEF456', 'GHI012'];
 
   return (
     <ModalOverlay isOpen={isOpen} onClick={handleOverlayClick}>
@@ -328,26 +282,11 @@ export const JoinBoardModal: React.FC<JoinBoardModalProps> = ({ isOpen, onClose 
                   setInviteCode(e.target.value.toUpperCase());
                   setError('');
                 }}
-                placeholder="Enter invite code (e.g., ABC123)"
+                placeholder="Paste your real invite code"
                 maxLength={20}
                 required
               />
               {error && <ErrorMessage>{error}</ErrorMessage>}
-              
-              <ExampleCodes>
-                <h4>Try these example codes:</h4>
-                <div>
-                  {exampleCodes.map((code) => (
-                    <ExampleCode
-                      key={code}
-                      type="button"
-                      onClick={() => handleExampleClick(code)}
-                    >
-                      {code}
-                    </ExampleCode>
-                  ))}
-                </div>
-              </ExampleCodes>
             </FormGroup>
 
             <ButtonGroup>

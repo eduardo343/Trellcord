@@ -11,6 +11,10 @@ export interface Board {
   title: string;
   description?: string;
   isStarred: boolean;
+  color?: string;
+  progress?: number;
+  teamName?: string;
+  inviteCode?: string;
   members: User[];
   lists: List[];
   createdAt: Date;
@@ -75,6 +79,22 @@ export interface ChatMessage {
   boardId: string;
   createdAt: Date;
   reactions?: Reaction[];
+}
+
+export interface BoardChannel {
+  id: string;
+  name: string;
+  boardId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ChannelMessage {
+  id: string;
+  content: string;
+  channelId: string;
+  author: User;
+  createdAt: Date;
 }
 
 export interface Reaction {
