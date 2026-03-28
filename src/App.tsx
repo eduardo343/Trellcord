@@ -1,5 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { BoardProvider } from './context/BoardContext';
 import './App.css';
@@ -78,6 +79,7 @@ function App() {
     <AuthProvider>
       <BoardProvider>
         <Router>
+          <SpeedInsights />
           <div className="App">
             <Suspense fallback={<FullScreenLoader />}>
               <Routes>
